@@ -8,6 +8,15 @@ from backend.app.services.rag.knowledge_base import MOUNT_FUJI_KNOWLEDGE_DOCUMEN
 logger = logging.getLogger("fujinova.rag.retriever")
 
 
+STOPWORDS = {
+    "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
+    "this", "that", "these", "those", "is", "are", "was", "were", "be", "been", "being",
+    "have", "has", "had", "do", "does", "did", "can", "could", "should", "would",
+    "tell", "about", "give", "the", "and", "for", "with", "from", "into", "during",
+    "before", "after", "above", "below", "some", "any", "your", "my", "our", "their"
+}
+
+
 class KnowledgeChunk:
     def __init__(self, doc_id: str, title: str, category: str, content: str, attribution: str, keywords: List[str]):
         self.doc_id = doc_id
@@ -27,7 +36,7 @@ class KnowledgeChunk:
         score = 0.0
         # Title match bonus
         for q in q_tokens:
-            if len(q) <= 2:
+            if len(q) <= 2 or q in STOPWORDS:
                 continue
             if q in self.title.lower():
                 score += 3.0
@@ -36,10 +45,12 @@ class KnowledgeChunk:
             if q in self._tokens:
                 score += 1.0
 
-        # Exact phrase or bigram matches
-        q_lower = query.lower()
-        if self.title.lower() in q_lower or any(kw in q_lower for kw in self.keywords if len(kw) > 4):
-            score += 4.0
+        # Exact phrase or bigram matches (only if query contains non-stopwords)
+        content_tokens = [q for q in q_tokens if q not in STOPWORDS and len(q) > 2]
+        if content_tokens:
+            q_lower = query.lower()
+            if self.title.lower() in q_lower or any(kw in q_lower for kw in self.keywords if len(kw) > 4):
+                score += 4.0
 
         return score
 

@@ -75,14 +75,14 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
           limit: 3,
         };
 
-        let res = await fetch(apiUrl('/api/crowd/recommendations'), {
+        let res = await fetch(apiUrl('/api/v1/crowd/recommendations'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(bodyPayload),
         });
 
         if (!res.ok) {
-          res = await fetch(apiUrl('/api/v1/crowd/recommendations'), {
+          res = await fetch(apiUrl('/api/crowd/recommendations'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(bodyPayload),
@@ -92,7 +92,10 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
         if (res.ok && isMounted) {
           const data: CrowdRecommendationResponse = await res.json();
           setRecommendations(data);
+          setRecError(null);
         } else {
+          const errText = await res.text().catch(() => '');
+          console.error('Crowd recommendations error:', res.status, errText);
           setRecError('Failed to fetch crowd recommendations from backend.');
         }
       } catch (err) {

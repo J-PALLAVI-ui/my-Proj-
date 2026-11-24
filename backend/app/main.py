@@ -146,6 +146,14 @@ def api_crowd_status(scenario: CrowdScenario = "high"):
 def api_crowd_recommendations(request: CrowdRecommendationRequest):
     return recommendation_service.get_recommendations(request)
 
+@app.get("/api/crowd/places/{place_id}", tags=["Crowd Compatibility"])
+def api_crowd_place(place_id: str, scenario: CrowdScenario = "high"):
+    return crowd_service.get_place_crowd_status(place_id=place_id, scenario=scenario)
+
+@app.get("/api/crowd/places", tags=["Crowd Compatibility"])
+def api_crowd_all_places(scenario: CrowdScenario = "high"):
+    return crowd_service.get_all_places_crowd_status(scenario=scenario)
+
 
 @app.get("/api/conversations", tags=["Conversations Compatibility"])
 def api_compat_list_conversations(q: str = None, limit: int = 50):

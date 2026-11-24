@@ -1,24 +1,47 @@
 @echo off
-title Stop FujiNova
+title FujiNova - Stop Services
 color 0C
 
 echo =======================================================================
-echo                 Stopping FujiNova Services...
+echo                 FUJINOVA -- Stopping All Services
 echo =======================================================================
 echo.
 
 cd /d "%~dp0"
 
-echo [*] Finding and terminating processes listening on ports 8000 and 5173...
+echo [*] Finding and terminating processes on port 8000 (Backend)...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr /R ":8000.*LISTENING"') do (
+    echo [*] Terminating process tree for port 8000: PID %%a
+    taskkill /F /T /PID %%a >nul 2>&1
+)
 
-:: Find and terminate process on port 8000 (Backend)
-powershell -Command "$pids = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; foreach ($p in $pids) { if ($p) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; Write-Host \"[OK] Terminated backend process on port 8000 (PID $p)\" } }"
+echo [*] Finding and terminating processes on port 5173 (Frontend)...
+for /f "tokens=4,5" %%a in ('netstat -ano ^| findstr /R ":5173.*LISTENING"') do (
+    taskkill /F /T /PID %%a >nul 2>&1
+    taskkill /F /T /PID %%b >nul 2>&1
+)
 
-:: Find and terminate process on port 5173 (Frontend Vite)
-powershell -Command "$pids = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; foreach ($p in $pids) { if ($p) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; Write-Host \"[OK] Terminated frontend process on port 5173 (PID $p)\" } }"
+:: Terminate any named windows
+taskkill /F /FI "WINDOWTITLE eq FujiNova_Backend*" >nul 2>&1
+taskkill /F /FI "WINDOWTITLE eq FujiNova_Frontend*" >nul 2>&1
+
+:: Pause 1 second using ping
+ping -n 2 127.0.0.1 >nul
+
+:: Verification
+netstat -ano | findstr /R ":8000.*LISTENING" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr /R ":8000.*LISTENING"') do taskkill /F /T /PID %%a >nul 2>&1
+)
+netstat -ano | findstr /R ":5173.*LISTENING" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=4,5" %%a in ('netstat -ano ^| findstr /R ":5173.*LISTENING"') do taskkill /F /T /PID %%a >nul 2>&1
+)
 
 echo.
 echo =======================================================================
-echo   FujiNova services have been stopped.
+echo   All FujiNova services have been stopped successfully!
 echo =======================================================================
 echo.
+ping -n 3 127.0.0.1 >nul
+exit /b 0

@@ -596,10 +596,10 @@ class HanaAgent:
                 yield token
 
         except Exception as llm_err:
-            logger.warning(f"Primary LLM streaming error or unavailable: {llm_err}")
+            logger.error(f"Primary LLM streaming error: {llm_err}")
 
-            # Intelligent, grounded fallback based on detected query
-            if state.get("active_itinerary"):
+            # Grounded fallback only when specific tools were explicitly requested
+            if is_itinerary_request and state.get("active_itinerary"):
                 plan = state["active_itinerary"]
                 lines = [f"I have prepared your {plan['total_days']}-day itinerary for Mount Fuji and the Fuji Five Lakes:\n\n"]
                 for d in plan["days"]:
@@ -608,7 +608,7 @@ class HanaAgent:
                         lines.append(f"- **{s['name_en']} ({s['name_ja']})** at {s['estimated_arrival']} — {s['admission_info']}. Fuji View: ★{s['fuji_view_rating']}/5.\n")
                 lines.append("\nYou can view the full route and modify stops in the Journey panel.")
                 fallback_msg = "".join(lines)
-            elif state.get("identified_journeys"):
+            elif transit_info and state.get("identified_journeys"):
                 j = state["identified_journeys"][0]
                 first_leg = j.get("legs", [{}])[0]
                 op = first_leg.get("operator", "Bus")
@@ -628,14 +628,14 @@ class HanaAgent:
                     f"- **Fare:** {fare} JPY\n\n"
                     f"The full connection details are displayed in the transit card below."
                 )
-            elif state.get("identified_crowd_alternatives"):
+            elif crowd_info and state.get("identified_crowd_alternatives"):
                 alts = state["identified_crowd_alternatives"]
                 alt_lines = ["Based on our CrowdSense simulation, here are quieter, high-rating alternatives to consider:\n\n"]
                 for a in alts:
                     alt_lines.append(f"- **{a['name_en']} ({a['name_ja']})**: **-{a['crowd_reduction_percent']}% crowd reduction**. {a['recommendation_reason']}\n")
                 alt_lines.append("\nYou can compare them directly or adapt your itinerary in the dashboard.")
                 fallback_msg = "".join(alt_lines)
-            elif weather_context:
+            elif any(w in lower_msg for w in ["weather", "temperature", "winter", "pack", "december", "rain", "climate", "season"]) and weather_context:
                 w_info = get_weather_info()
                 fallback_msg = (
                     f"**Weather & Climate for Mount Fuji & Kawaguchiko ({w_info['month']}):**\n\n"
@@ -645,31 +645,10 @@ class HanaAgent:
                     f"- **What to Pack:** {w_info['packing_recommendations']}\n\n"
                     f"*(Source: {w_info['data_source']})*"
                 )
-            elif rag_chunks:
-                top_chunk = rag_chunks[0]
-                fallback_msg = f"**{top_chunk['title']}**\n\n{top_chunk['content']}\n\n*(Source: {top_chunk['attribution']})*"
-            elif "machine learning" in lower_msg or "deep learning" in lower_msg:
-                fallback_msg = (
-                    "**Machine Learning vs Deep Learning:**\n\n"
-                    "- **Machine Learning (ML):** A broad subfield of artificial intelligence where algorithms learn patterns from data to make predictions or decisions without being explicitly programmed. ML includes linear models, decision trees, support vector machines, and ensemble methods like random forests.\n\n"
-                    "- **Deep Learning (DL):** A specialized subset of machine learning based on multi-layered artificial neural networks (deep neural networks). It excels at automatically extracting hierarchical feature representations from high-dimensional, unstructured data like images, speech, and natural language text (e.g. Transformers, CNNs, and LLMs)."
-                )
-            elif "culture" in lower_msg:
-                fallback_msg = (
-                    "**Japanese Culture & Travel Etiquette:**\n\n"
-                    "- **Respect & Omotenashi:** Hospitality (おもてなし, omotenashi) is central to Japanese customer service. People bow as a greeting and sign of respect.\n"
-                    "- **Public Etiquette:** Avoid speaking loudly on buses and trains. Keep phones on silent mode (manner mode).\n"
-                    "- **Trash & Cleanliness:** Public garbage bins are rare; carry a small bag to take your trash back to your hotel or convenience store.\n"
-                    "- **Onsen & Baths:** Always wash thoroughly before entering communal hot spring waters, and check tattoo policies in advance."
-                )
-            elif grounded_places:
-                p_names = ", ".join(f"{p['name_en']} ({p['name_ja']})" for p in grounded_places[:3])
-                fallback_msg = f"Based on verified database records for Mount Fuji and Yamanashi, I recommend exploring: {p_names}. How would you like to pace your visit?"
             else:
                 fallback_msg = (
-                    "Hello! I am Hana (ハナ), your AI travel companion for Mount Fuji and the Fuji Five Lakes. "
-                    "I can help you plan personalized itineraries, calculate transit schedules, find crowd-free spots, "
-                    "or answer any questions about Japanese culture and travel. How can I assist you today?"
+                    f"I apologize, but I encountered an error communicating with the AI service: {str(llm_err)}. "
+                    "Please check your API key configuration in .env and verify that your Gemini API key is valid."
                 )
 
             # Stream words with slight delay pacing
