@@ -1,0 +1,85 @@
+# =====================================================================
+# FujiNova — Git Ignore Configuration
+# =====================================================================
+
+# Environment & Secrets (NEVER commit secrets or API keys)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python Virtual Environments & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# SQLite Databases & Ephemeral Storage
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+fujinova.db
+
+# Node.js & Frontend Artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+dist/
+dist_prod/
+dist-ssr/
+*.local
+*.timestamp-*.mjs
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# Operating System Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride

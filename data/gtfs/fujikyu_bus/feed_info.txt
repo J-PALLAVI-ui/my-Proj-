@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version
+富士急バス株式会社,https://www.fujikyubus.co.jp/,ja,20260105,20261231,202610161800
