@@ -12,9 +12,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field("sqlite:///./fujinova.db", description="SQLite connection string")
 
     # Primary Model Provider Configuration
-    # Uses 'gemini-3.8-flash' as baseline, or 'openai' when OPENAI_API_KEY is configured
+    # Uses 'gemini-flash-lite-latest' as baseline, or 'openai' when OPENAI_API_KEY is configured
     FUJINOVA_PRIMARY_PROVIDER: str = Field("google", description="Primary AI provider ('google' or 'openai')")
-    FUJINOVA_PRIMARY_MODEL: str = Field("gemini-3.8-flash", description="Primary model identifier")
+    FUJINOVA_PRIMARY_MODEL: str = Field("gemini-flash-lite-latest", description="Primary model identifier")
 
     # OpenAI Configuration (Official OpenAI SDK)
     OPENAI_API_KEY: Optional[str] = Field(None, description="OpenAI API key")
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # Google Gemini Configuration (Supported Alternate Provider)
     GEMINI_API_KEY: Optional[str] = Field(None, description="Google AI Studio API key")
-    GEMINI_MODEL: str = Field("gemini-3.8-flash", description="Gemini model identifier")
+    GEMINI_MODEL: str = Field("gemini-flash-lite-latest", description="Gemini model identifier")
 
     # Secondary / Failover Configuration
     ENABLE_OPENAI_FALLBACK: bool = Field(False, description="Set to True only if explicitly enabling paid OpenAI failover")

@@ -36,14 +36,14 @@ class GeminiAdapter(BaseLLMAdapter):
 
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model = model or settings.FUJINOVA_PRIMARY_MODEL
+        self.model = model or settings.GEMINI_MODEL or settings.FUJINOVA_PRIMARY_MODEL or "gemini-flash-lite-latest"
         self._client: Optional[genai.Client] = None
 
     def _get_client(self) -> genai.Client:
         if not self.api_key or self.api_key.strip() in ("", "YOUR_GOOGLE_AI_STUDIO_KEY"):
             raise AuthenticationError("GEMINI_API_KEY is not configured or is a placeholder.")
         if not self._client:
-            self._client = genai.Client(api_key=self.api_key)
+            self._client = genai.Client(api_key=self.api_key, http_options={"api_version": "v1beta"})
         return self._client
 
     def _format_contents(self, messages: List[Dict[str, str]]) -> List[types.Content]:
