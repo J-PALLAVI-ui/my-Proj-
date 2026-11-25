@@ -403,8 +403,15 @@ class HanaAgent:
         lower_msg = user_message.lower()
 
         # 2. Check for Itinerary Generation / Modification Requests
+        m_hours = re.search(r"\b(\d{1,2}(?:\.\d+)?)\s*(?:hour|hours|hr|hrs)\b", lower_msg)
+        is_time_budget_query = (
+            m_hours is not None
+            and any(kw in lower_msg for kw in ["have", "trip", "itinerary", "plan", "spend", "time", "explore", "can do"])
+        )
+
         is_itinerary_request = (
-            update.detected_intent == "itinerary_request"
+            is_time_budget_query
+            or update.detected_intent == "itinerary_request"
             or any(kw in lower_msg for kw in ["itinerary", "plan a trip", "plan my trip", "one-day", "1-day", "2-day", "two-day", "3-day"])
         )
         is_itinerary_modify = (
@@ -413,7 +420,37 @@ class HanaAgent:
         )
 
         itinerary_context = ""
-        if is_itinerary_modify:
+        if is_time_budget_query and m_hours:
+            avail_h = float(m_hours.group(1))
+            target_pid = "kawaguchiko_oishi_park"
+            for candidate_k in ["arakurayama", "chureito", "oishi", "oshino", "iyashi", "shoji", "motosu", "yamanakako"]:
+                if candidate_k in lower_msg:
+                    target_pid = self.resolve_place_id(candidate_k)
+                    break
+            from backend.app.services.itinerary.itinerary_service import generate_time_budgeted_itinerary
+            time_plan = generate_time_budgeted_itinerary(
+                start_location="Kawaguchiko Station",
+                target_place_id=target_pid,
+                available_hours=avail_h,
+                departure_time="09:30:00",
+                adult_count=1,
+                child_count=0,
+                user_has_jr_pass="jr pass" in lower_msg
+            )
+            state["active_itinerary"] = time_plan.model_dump()
+            itinerary_context = (
+                f"\n\nVERIFIED TIME-BUDGETED ITINERARY PLAN ({avail_h:.0f} HOURS):\n"
+                f"Title: {time_plan.title}\n"
+                f"Schedule ({time_plan.departure_time} - {time_plan.return_time}, Total: {time_plan.total_duration_minutes} min):\n"
+            )
+            for st in time_plan.steps:
+                itinerary_context += f"- Step {st.step_number} [{st.step_type}]: {st.title} ({st.departure_time} - {st.arrival_time}) | {st.instruction}\n"
+            itinerary_context += (
+                f"\nTransport Pass Recommendation: {time_plan.cost_summary['recommended_option']['title']} "
+                f"(Total: ¥{time_plan.cost_summary['recommended_option']['total_cost_jpy']:,}).\n"
+                f"JR Pass Advisory: {time_plan.cost_summary['jr_pass_advisory']}\n"
+            )
+        elif is_itinerary_modify:
             active_plan = ItineraryPlan.model_validate(state["active_itinerary"])
             if "remove" in lower_msg:
                 # remove 3rd or index
@@ -582,7 +619,19 @@ class HanaAgent:
                 f"- Source: {w_data['data_source']}\n"
             )
 
-        # 8. Grounded Places Formatting
+        # 8. Official Fujikyu Pass and JR Pass Advisories
+        pass_context = ""
+        if any(w in lower_msg for w in ["jr pass", "japan rail pass", "pass", "ticket", "cost", "how much", "fare"]):
+            pass_context = (
+                "\n\nOFFICIAL FUJIKYU PASS & FARE INTELLIGENCE:\n"
+                "- JAPAN RAIL PASS (JR PASS) EXCLUSION: The Japan Rail Pass does NOT cover the private Fujikyu Railway line "
+                "(Otsuki to Kawaguchiko / ¥1,170 one-way) or Fujikyu Sightseeing Buses. JR Pass holders must purchase separate tickets or a Fujikyu Pass.\n"
+                "- Kawaguchiko, Saiko & Motosuko Sightseeing Bus Pass: 1-Day unlimited rides on Red, Green, Blue lines (Adult ¥1,500, Child ¥750).\n"
+                "- Fujikko-go Sightseeing Bus Pass: 1-Day loop around Oshino Hakkai & Yamanakako (Adult ¥1,800, Child ¥900).\n"
+                "- Mount Fuji & Fuji Five Lakes Passport: 2-Day Bus Pass is ¥3,300 (Child ¥1,650); with Fujikyu Railway Set is ¥4,700 (Child ¥2,350).\n"
+            )
+
+        # 9. Grounded Places Formatting
         grounding_places_text = ""
         if grounded_places:
             grounding_places_text = "\n\nVERIFIED DATABASE PLACES TO RECOMMEND (Ground all specifics here):\n"
@@ -603,6 +652,7 @@ class HanaAgent:
             + transit_context
             + crowd_context
             + itinerary_context
+            + pass_context
         )
 
         prompt_messages = [{"role": "system", "content": full_system_prompt}]

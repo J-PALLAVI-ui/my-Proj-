@@ -197,6 +197,31 @@ def api_crowd_place(place_id: str, scenario: CrowdScenario = "high"):
 def api_crowd_all_places(scenario: CrowdScenario = "high"):
     return crowd_service.get_all_places_crowd_status(scenario=scenario)
 
+@app.get("/api/crowd/forecast/{place_id}", tags=["Crowd Compatibility"])
+def api_crowd_forecast(place_id: str, target_date: Optional[str] = None, target_time: Optional[str] = None):
+    from backend.app.api.routes_crowd import get_seasonal_crowd_forecast
+    return get_seasonal_crowd_forecast(place_id=place_id, target_date=target_date, target_time=target_time)
+
+@app.post("/api/itinerary/time-budget", tags=["Itinerary Compatibility"])
+def api_compat_time_budget(request: Any = None):
+    from backend.app.api.routes_itinerary import TimeBudgetItineraryRequest, api_time_budgeted_itinerary
+    if isinstance(request, dict):
+        parsed = TimeBudgetItineraryRequest.model_validate(request)
+    elif request is None:
+        parsed = TimeBudgetItineraryRequest()
+    else:
+        parsed = request
+    return api_time_budgeted_itinerary(parsed)
+
+@app.post("/api/itinerary/optimize-passes", tags=["Itinerary Compatibility"])
+def api_compat_optimize_passes(request: Any = None):
+    from backend.app.api.routes_itinerary import PassOptimizeRequest, api_optimize_passes
+    if isinstance(request, dict):
+        parsed = PassOptimizeRequest.model_validate(request)
+    else:
+        parsed = request
+    return api_optimize_passes(parsed)
+
 
 @app.get("/api/conversations", tags=["Conversations Compatibility"])
 def api_compat_list_conversations(q: str = None, limit: int = 50):

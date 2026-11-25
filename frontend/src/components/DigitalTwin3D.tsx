@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { CrowdLevel } from '../types';
 import { apiUrl } from '../config';
+import { useTrip } from '../context/TripContext';
 import { 
   Compass, 
   Sun, 
@@ -13,7 +14,8 @@ import {
   DollarSign, 
   MessageSquare, 
   Map as MapIcon,
-  Navigation
+  Navigation,
+  Sparkles
 } from 'lucide-react';
 
 interface DigitalTwin3DProps {
@@ -183,6 +185,7 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
   selectedPlaceId: _selectedPlaceId,
   onSwitchTo2D
 }) => {
+  const { setSelectedPlace, generateTimePlan, timeBudgetHours, openWalkthrough } = useTrip();
   const mountRef = useRef<HTMLDivElement>(null);
   const [activeLocation, setActiveLocation] = useState<Landmark3D>(LANDMARKS_3D[0]);
   const [timeOfDay, setTimeOfDay] = useState<'day' | 'sunset' | 'night'>('day');
@@ -559,6 +562,7 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
           const landmark: Landmark3D = obj.userData.landmark;
           setActiveLocation(landmark);
           onSelectPlace?.(landmark.id);
+          setSelectedPlace(landmark.id, landmark.name_en);
           flyTo(landmark.x, landmark.z, 50);
         }
       }
@@ -840,7 +844,17 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => {
+                      setSelectedPlace(activeLocation.id, activeLocation.name_en);
+                      generateTimePlan(timeBudgetHours, activeLocation.id).then(() => openWalkthrough());
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Plan {timeBudgetHours}h Trip</span>
+                  </button>
                   <button
                     onClick={() => onAskHana(`How do I get to ${activeLocation.name_en} using Fujikyu bus or railway from Kawaguchiko Station?`)}
                     className="flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-xs transition-colors"

@@ -208,3 +208,85 @@ export interface ItineraryPlan {
   summary_notes?: string;
 }
 
+export interface StepByStepLeg {
+  step_number: number;
+  step_type: 'WALK' | 'TRANSIT' | 'SIGHTSEEING' | 'MEAL' | 'RETURN' | string;
+  title: string;
+  instruction: string;
+  location_name: string;
+  departure_time?: string;
+  arrival_time?: string;
+  duration_minutes: number;
+  distance_meters?: number;
+  operator?: string;
+  route_name?: string;
+  route_color?: string;
+  fare_jpy?: number;
+  notes?: string;
+  crowd_forecast?: SeasonalCrowdForecastData;
+}
+
+export interface PassComparisonOption {
+  option_type: 'individual_tickets' | 'pass' | string;
+  title: string;
+  pass_id?: string;
+  pass_price_jpy: number;
+  uncovered_fares_jpy: number;
+  total_cost_jpy: number;
+  potential_savings_jpy: number;
+  is_recommended: boolean;
+  recommendation_reason: string;
+  covered_legs_count: number;
+  uncovered_legs_count: number;
+  official_source_url: string;
+}
+
+export interface PassOptimizationResult {
+  individual_tickets_cost_jpy: number;
+  recommended_option: PassComparisonOption;
+  all_options: PassComparisonOption[];
+  adult_count: number;
+  child_count: number;
+  total_legs_evaluated: number;
+  jr_pass_advisory: string;
+  currency: string;
+}
+
+export interface SeasonalCrowdForecastData {
+  place_id: string;
+  score: number;
+  level: 'VERY_LOW' | 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH';
+  level_label: string;
+  badge_color: string;
+  provenance: string;
+  confidence_pct: number;
+  is_weekend: boolean;
+  day_type: string;
+  active_events: string[];
+  time_evaluated: string;
+  date_evaluated: string;
+  advisory: string;
+  recommend_quieter_alternative: boolean;
+}
+
+export interface TimeBudgetedItineraryResponse {
+  itinerary_id: string;
+  title: string;
+  start_location: string;
+  destination_name: string;
+  time_budget_hours: number;
+  total_duration_minutes: number;
+  departure_time: string;
+  return_time: string;
+  is_feasible: boolean;
+  steps: StepByStepLeg[];
+  cost_summary: PassOptimizationResult;
+  crowd_summary?: SeasonalCrowdForecastData;
+  variations: Array<{
+    id: string;
+    label: string;
+    description: string;
+  }>;
+}
+
+

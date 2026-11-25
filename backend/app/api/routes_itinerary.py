@@ -5,8 +5,13 @@ from pydantic import BaseModel, Field
 
 from backend.app.agent.hana import agent as hana_agent
 from backend.app.services.itinerary.itinerary_service import (
-    ItineraryPlan, generate_itinerary, modify_itinerary
+    ItineraryPlan,
+    generate_itinerary,
+    modify_itinerary,
+    generate_time_budgeted_itinerary,
+    TimeBudgetedItineraryResponse,
 )
+from backend.app.services.routing.pass_optimizer import PassOptimizer, PassOptimizationResult
 
 router = APIRouter(prefix="/api/v1/itinerary", tags=["Itinerary"])
 
@@ -83,14 +88,58 @@ def api_update_itinerary(request: ItineraryUpdateRequest):
     return updated_plan
 
 
-@router.get("/session/{session_id}")
-def api_get_session_itinerary(session_id: str):
-    """Retrieve active itinerary for the given session."""
-    state = hana_agent.get_or_create_state(session_id)
-    if not state.get("active_itinerary"):
-        return {"session_id": session_id, "has_itinerary": False, "itinerary": None}
-    return {
-        "session_id": session_id,
-        "has_itinerary": True,
-        "itinerary": state["active_itinerary"]
-    }
+class TimeBudgetItineraryRequest(BaseModel):
+    start_location: str = Field("Kawaguchiko Station", description="Origin hub, station, or GPS coordinate")
+    target_place_id: str = Field("kawaguchiko_oishi_park", description="Primary destination place_id")
+    available_hours: float = Field(5.0, ge=1.0, le=12.0, description="Available duration for total trip (1 to 12 hours)")
+    departure_time: str = Field("09:30:00", description="Departure time in HH:MM:SS or HH:MM format")
+    party_composition: str = Field("couple", description="solo, couple, family_with_kids, multigenerational, friends")
+    adult_count: int = Field(1, ge=1, le=20)
+    child_count: int = Field(0, ge=0, le=20)
+    user_has_jr_pass: bool = Field(False, description="Whether traveler holds a Japan Rail Pass")
+    prefer_quiet: bool = Field(True, description="Whether to prioritize less-crowded destinations")
+    session_id: Optional[str] = None
+
+
+class PassOptimizeRequest(BaseModel):
+    legs: List[Dict[str, Any]]
+    adult_count: int = 1
+    child_count: int = 0
+    user_has_jr_pass: bool = False
+
+
+@router.post("/time-budget", response_model=TimeBudgetedItineraryResponse)
+def api_time_budgeted_itinerary(request: TimeBudgetItineraryRequest):
+    """
+    Generates a realistic, time-budgeted journey connecting verified Fujikyu transit,
+    sightseeing, dining breaks, secondary destinations, and return transport.
+    """
+    plan = generate_time_budgeted_itinerary(
+        start_location=request.start_location,
+        target_place_id=request.target_place_id,
+        available_hours=request.available_hours,
+        departure_time=request.departure_time,
+        party_composition=request.party_composition,
+        adult_count=request.adult_count,
+        child_count=request.child_count,
+        user_has_jr_pass=request.user_has_jr_pass,
+        prefer_quiet=request.prefer_quiet
+    )
+    if request.session_id:
+        state = hana_agent.get_or_create_state(request.session_id)
+        state["active_itinerary"] = plan.model_dump()
+    return plan
+
+
+@router.post("/optimize-passes", response_model=PassOptimizationResult)
+def api_optimize_passes(request: PassOptimizeRequest):
+    """
+    Compares total individual fares against official Fujikyu sightseeing passes and
+    recommends the cheapest valid pass with potential savings and JR pass advisories.
+    """
+    return PassOptimizer.evaluate_itinerary_costs(
+        legs=request.legs,
+        adult_count=request.adult_count,
+        child_count=request.child_count,
+        user_has_jr_pass=request.user_has_jr_pass
+    )

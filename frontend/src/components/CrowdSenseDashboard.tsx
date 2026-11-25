@@ -8,6 +8,9 @@ import {
   CrowdSystemStatusResponse,
 } from '../types';
 import { apiUrl } from '../config';
+import { useTrip } from '../context/TripContext';
+import { TravelOnboardingBar } from './TravelOnboardingBar';
+import { TravelWalkthroughModal } from './TravelWalkthroughModal';
 import { DestinationComparisonModal } from './DestinationComparisonModal';
 import {
   Mountain,
@@ -23,10 +26,18 @@ interface CrowdSenseDashboardProps {
 }
 
 export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskHana }) => {
+  const { selectedPlaceId, setSelectedPlace } = useTrip();
   const [scenario, setScenario] = useState<CrowdScenario>('high');
   const [preference, setPreference] = useState<CrowdPreference>('quiet');
-  const [currentPlaceId, setCurrentPlaceId] = useState<string>('kawaguchiko_oishi_park');
+  const [currentPlaceId, setCurrentPlaceId] = useState<string>(selectedPlaceId || 'kawaguchiko_oishi_park');
   const [originalPlaceId] = useState<string>('kawaguchiko_oishi_park');
+
+  // Sync with global trip context
+  useEffect(() => {
+    if (selectedPlaceId && selectedPlaceId !== currentPlaceId) {
+      setCurrentPlaceId(selectedPlaceId);
+    }
+  }, [selectedPlaceId]);
 
   const [systemStatus, setSystemStatus] = useState<CrowdSystemStatusResponse | null>(null);
   const [recommendations, setRecommendations] = useState<CrowdRecommendationResponse | null>(null);
@@ -130,7 +141,10 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
   const handleSelectAlternative = (alt: CrowdAlternativeCard) => {
     setActiveAdaptedAlternative(alt);
     const pid = alt.place_id || (alt.place && (alt.place as any).place_id);
-    if (pid) setCurrentPlaceId(pid);
+    if (pid) {
+      setCurrentPlaceId(pid);
+      setSelectedPlace(pid, alt.name_en);
+    }
   };
 
   const alternativesList: CrowdAlternativeCard[] = Array.isArray(
@@ -187,6 +201,9 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
           </div>
         </div>
       </div>
+
+      {/* Interactive Travel Onboarding: Starting Location & Time Budget Guide */}
+      <TravelOnboardingBar onAskHana={onAskHana} />
 
       {/* 2. Simulation & Preference Control Bar (Matches Image 1) */}
       <div className="bg-white rounded-2xl border border-[#E1EAF1] p-4 sm:p-5 shadow-xs">
@@ -551,6 +568,9 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
           }}
         />
       )}
+
+      {/* Step-by-Step Travel Walkthrough & Pass Optimizer Modal */}
+      <TravelWalkthroughModal onAskHana={onAskHana} />
     </div>
   );
 };

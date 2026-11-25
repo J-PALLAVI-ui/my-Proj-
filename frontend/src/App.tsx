@@ -5,12 +5,13 @@ import { HanaChatSidebar } from './components/HanaChatSidebar';
 import { PlacesGrid } from './components/PlacesGrid';
 import { DigitalTwin3D } from './components/DigitalTwin3D';
 import { LiveRegionMap } from './components/LiveRegionMap';
+import { TripProvider, useTrip } from './context/TripContext';
 import { apiUrl } from './config';
 
-export const App: React.FC = () => {
+const MainAppContent: React.FC = () => {
+  const { selectedPlaceId, setSelectedPlace } = useTrip();
   const [activeView, setActiveView] = useState<'crowd' | 'places' | 'twin'>('crowd');
   const [isTwin2DMode, setIsTwin2DMode] = useState<boolean>(false);
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [isHanaVisible, setIsHanaVisible] = useState<boolean>(true);
   const [sessionId] = useState<string>(() => {
     return (
@@ -113,7 +114,7 @@ export const App: React.FC = () => {
                 <div className="bg-white p-5 rounded-2xl border border-[#E1EAF1] shadow-xs">
                   <LiveRegionMap
                     onAskHana={handleAskHana}
-                    onSelectPlace={(id) => setSelectedPlaceId(id)}
+                    onSelectPlace={(id) => setSelectedPlace(id)}
                     selectedPlaceId={selectedPlaceId}
                   />
                 </div>
@@ -121,7 +122,7 @@ export const App: React.FC = () => {
                 <div className="bg-white p-2 rounded-2xl border border-[#E1EAF1] shadow-xs overflow-hidden">
                   <DigitalTwin3D
                     onAskHana={handleAskHana}
-                    onSelectPlace={(id) => setSelectedPlaceId(id)}
+                    onSelectPlace={(id) => setSelectedPlace(id)}
                     selectedPlaceId={selectedPlaceId}
                     onSwitchTo2D={() => setIsTwin2DMode(true)}
                   />
@@ -156,5 +157,13 @@ export const App: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <TripProvider>
+      <MainAppContent />
+    </TripProvider>
   );
 };

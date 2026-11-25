@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CrowdLevel } from '../types';
+import { useTrip } from '../context/TripContext';
 import { 
   Star, 
   Clock, 
   DollarSign, 
   Compass, 
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 
 interface LiveRegionMapProps {
@@ -199,8 +201,16 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
   onAskHana,
   selectedPlaceId: _selectedPlaceId
 }) => {
+  const { selectedPlaceId, setSelectedPlace, generateTimePlan, timeBudgetHours, openWalkthrough } = useTrip();
   const [activeLocation, setActiveLocation] = useState<MapLocation>(REGION_LOCATIONS[0]);
   const [filterLake, setFilterLake] = useState<string>('all');
+
+  useEffect(() => {
+    if (selectedPlaceId) {
+      const match = REGION_LOCATIONS.find(l => l.id === selectedPlaceId);
+      if (match) setActiveLocation(match);
+    }
+  }, [selectedPlaceId]);
 
   const filtered = filterLake === 'all' 
     ? REGION_LOCATIONS 
@@ -209,6 +219,7 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
   const handlePinClick = (loc: MapLocation) => {
     setActiveLocation(loc);
     onSelectPlace?.(loc.id);
+    setSelectedPlace(loc.id, loc.name_en);
   };
 
   const getCrowdBadge = (lvl: CrowdLevel) => {
@@ -506,13 +517,25 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => onAskHana(`Tell me more about ${activeLocation.name_en} and how to reach it from Kawaguchiko Station.`)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow-xs transition-colors"
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    <span>Ask Hana</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setSelectedPlace(activeLocation.id, activeLocation.name_en);
+                        generateTimePlan(timeBudgetHours, activeLocation.id).then(() => openWalkthrough());
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-xs transition-colors"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>Plan {timeBudgetHours}h Trip</span>
+                    </button>
+                    <button
+                      onClick={() => onAskHana(`Tell me more about ${activeLocation.name_en} and how to reach it from Kawaguchiko Station.`)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-600 hover:bg-sky-500 text-white font-semibold shadow-xs transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      <span>Ask Hana</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

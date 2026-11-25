@@ -121,3 +121,37 @@ def get_all_places_crowd_status(
 ):
     """Retrieve simulated crowd metrics across all 35 destinations under selected scenario."""
     return crowd_service.get_all_places_crowd_status(scenario=scenario)
+
+
+@router.get("/forecast/{place_id}")
+def get_seasonal_crowd_forecast(
+    place_id: str,
+    target_date: Optional[str] = None,
+    target_time: Optional[str] = None,
+    weather: Optional[str] = "clear"
+):
+    """
+    Evaluates calendar, season, day of week, Japanese public holidays, and time-of-day
+    to predict crowd density across 5 categories (Very Low, Low, Moderate, High, Very High).
+    """
+    from backend.app.services.crowd.seasonal_predictor import SeasonalCrowdForecast
+    from datetime import date, time
+    parsed_date = None
+    parsed_time = None
+    if target_date:
+        try:
+            parsed_date = date.fromisoformat(target_date)
+        except Exception:
+            pass
+    if target_time:
+        try:
+            parts = target_time.split(":")
+            parsed_time = time(int(parts[0]), int(parts[1]))
+        except Exception:
+            pass
+    return SeasonalCrowdForecast.get_forecast(
+        place_id=place_id,
+        target_date=parsed_date,
+        target_time=parsed_time,
+        weather_condition=weather
+    )
