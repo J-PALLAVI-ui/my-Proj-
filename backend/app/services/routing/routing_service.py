@@ -22,6 +22,7 @@ from backend.app.services.routing.transit_models import (
     RouteSearchRequest,
     RouteSearchResponse,
     TransitStopSchema,
+    NearbyStopSchema,
 )
 from backend.app.services.routing.gtfs_loader import (
     GTFSFeed,
@@ -490,6 +491,140 @@ class RoutingService:
             provenance_badges=list(badges),
             warnings=warnings,
         )
+
+    def find_nearby_stops(
+        self,
+        lat: float,
+        lon: float,
+        max_distance_meters: float = 2000.0,
+        limit: int = 5
+    ) -> List[NearbyStopSchema]:
+        """Finds closest transit stops and railway stations to the given coordinates."""
+        if not self._is_initialized:
+            self.initialize()
+
+        scored = []
+        for stop in self.stops.values():
+            d = haversine_distance_meters(lat, lon, stop.lat, stop.lon)
+            if d <= max_distance_meters:
+                walk_sec = max(30, int(d / 1.1))
+                scored.append((d, stop, walk_sec))
+
+        scored.sort(key=lambda x: x[0])
+        results: List[NearbyStopSchema] = []
+        seen_names = set()
+        for d, stop, walk_sec in scored:
+            name_key = stop.stop_name_ja
+            if name_key in seen_names and len(scored) > limit:
+                continue
+            seen_names.add(name_key)
+            results.append(NearbyStopSchema(
+                stop_id=stop.stop_id,
+                stop_name_ja=stop.stop_name_ja,
+                stop_name_en=stop.stop_name_en,
+                lat=stop.lat,
+                lon=stop.lon,
+                distance_meters=round(d, 1),
+                walking_time_seconds=walk_sec,
+                is_railway=stop.is_railway,
+            ))
+            if len(results) >= limit:
+                break
+        return results
+
+    def search_route_from_location(
+        self,
+        user_lat: float,
+        user_lon: float,
+        destination_query: str,
+        departure_time_str: Optional[str] = None,
+        max_transfers: int = 2,
+        max_results: int = 3
+    ) -> RouteSearchResponse:
+        """Calculates route from user's current GPS location to destination."""
+        if not self._is_initialized:
+            self.initialize()
+
+        nearby = self.find_nearby_stops(user_lat, user_lon, max_distance_meters=3000.0, limit=3)
+        if not nearby:
+            nearby = self.find_nearby_stops(user_lat, user_lon, max_distance_meters=20000.0, limit=1)
+        if not nearby:
+            raise ValueError("No verified Fujikyu transit stops found near your location.")
+
+        closest_stop = nearby[0]
+        walk_to_stop_sec = closest_stop.walking_time_seconds
+        walk_to_stop_dist = closest_stop.distance_meters
+
+        now = datetime.now(TOKYO_TZ)
+        if departure_time_str:
+            dep_sec = parse_gtfs_time_to_sec(departure_time_str.split(" ")[-1])
+        else:
+            dep_sec = now.hour * 3600 + now.minute * 60 + now.second
+
+        board_time_sec = dep_sec + walk_to_stop_sec
+        board_time_str = format_sec_to_time(board_time_sec)
+
+        req = RouteSearchRequest(
+            origin=closest_stop.stop_id,
+            destination=destination_query,
+            departure_time=board_time_str,
+            max_transfers=max_transfers,
+            max_results=max_results
+        )
+        base_response = self.search_routes(req)
+
+        enhanced_journeys: List[JourneySchema] = []
+        for j in base_response.journeys:
+            walk_leg = JourneyLegSchema(
+                mode=TransitMode.WALK,
+                operator="Walking",
+                route_id="walk_origin",
+                route_short_name="Walk",
+                route_long_name=f"Walk to {closest_stop.stop_name_en}",
+                route_color="#64748B",
+                route_text_color="#FFFFFF",
+                trip_headsign=closest_stop.stop_name_ja,
+                origin_stop_id="current_location",
+                origin_stop_name="現在地",
+                origin_stop_name_en="Your Current Location",
+                departure_time=format_sec_to_time(dep_sec),
+                departure_timestamp_sec=dep_sec,
+                destination_stop_id=closest_stop.stop_id,
+                destination_stop_name=closest_stop.stop_name_ja,
+                destination_stop_name_en=closest_stop.stop_name_en,
+                arrival_time=board_time_str,
+                arrival_timestamp_sec=board_time_sec,
+                duration_minutes=max(1, walk_to_stop_sec // 60),
+                intermediate_stops_count=0,
+                intermediate_stops=[],
+                fare_jpy=0,
+                provenance=DataProvenance.CALCULATED,
+                provenance_badge="Verified GPS Walk",
+                advisory_notes=f"Walk {round(walk_to_stop_dist)}m ({max(1, walk_to_stop_sec // 60)} min) to boarding stop.",
+            )
+            new_legs = [walk_leg] + j.legs
+            new_duration = j.total_duration_minutes + max(1, walk_to_stop_sec // 60)
+            enhanced_j = j.model_copy(update={
+                "departure_time": format_sec_to_time(dep_sec),
+                "total_duration_minutes": new_duration,
+                "legs": new_legs
+            })
+            enhanced_journeys.append(enhanced_j)
+
+        user_origin_schema = TransitStopSchema(
+            stop_id="current_location",
+            stop_name_ja="現在地",
+            stop_name_en="Your Current Location",
+            lat=user_lat,
+            lon=user_lon,
+            is_railway=False
+        )
+
+        return base_response.model_copy(update={
+            "origin": user_origin_schema,
+            "journeys": enhanced_journeys,
+            "total_journeys_found": len(enhanced_journeys)
+        })
 
 
 # Global singleton instance for application reuse

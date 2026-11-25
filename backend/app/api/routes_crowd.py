@@ -6,6 +6,8 @@ from backend.app.services.crowd.crowd_models import (
     CrowdSystemStatusResponse,
     CrowdRecommendationRequest,
     CrowdRecommendationResponse,
+    CrowdDivertRequest,
+    CrowdDivertResponse,
     PlaceCrowdStatus,
 )
 from backend.app.services.crowd.crowd_service import crowd_service
@@ -34,6 +36,73 @@ def get_crowd_recommendations(request: CrowdRecommendationRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error evaluating crowd alternatives: {str(e)}"
+        )
+
+
+@router.post("/divert", response_model=CrowdDivertResponse)
+def divert_crowded_destination(request: CrowdDivertRequest):
+    """Calculates quiet alternative destination, transit connection, and encouraging travel advice."""
+    try:
+        rec_req = CrowdRecommendationRequest(
+            place_id=request.current_place_id,
+            preference=request.preference,
+            scenario=request.scenario,
+            limit=5
+        )
+        recs = recommendation_service.get_recommendations(rec_req)
+        if not recs.alternatives:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No alternatives found for {request.current_place_id} under {request.scenario} scenario."
+            )
+
+        target_alt = None
+        if request.target_alternative_id:
+            for a in recs.alternatives:
+                if a.place_id == request.target_alternative_id:
+                    target_alt = a
+                    break
+        if not target_alt:
+            target_alt = recs.alternatives[0]
+
+        transit_info = None
+        try:
+            from backend.app.services.routing.routing_service import get_routing_service
+            from backend.app.services.routing.transit_models import RouteSearchRequest
+            routing_svc = get_routing_service()
+            route_res = routing_svc.search_routes(RouteSearchRequest(
+                origin=recs.current_place_name,
+                destination=target_alt.name_en,
+                max_transfers=2,
+                max_results=1
+            ))
+            if route_res.journeys:
+                transit_info = route_res.journeys[0].model_dump()
+        except Exception:
+            transit_info = None
+
+        advice = (
+            f"{recs.current_place_name} is currently experiencing {recs.current_crowd_level.upper()} visitor traffic. "
+            f"Instead of spending time in long queues, we recommend {target_alt.name_en} (-{target_alt.crowd_reduction_percent}% crowd reduction). "
+            f"You will enjoy a peaceful, high-quality perspective of Mount Fuji (★{target_alt.fuji_view_rating}/5) with a much more relaxed experience."
+        )
+
+        return CrowdDivertResponse(
+            original_place_id=recs.current_place_id,
+            original_place_name=recs.current_place_name,
+            original_crowd_level=recs.current_crowd_level,
+            diverted_alternative=target_alt,
+            crowd_reduction_percent=target_alt.crowd_reduction_percent,
+            transit_connection=transit_info,
+            diversion_advice=advice,
+            status="success"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error executing crowd diversion: {str(e)}"
         )
 
 

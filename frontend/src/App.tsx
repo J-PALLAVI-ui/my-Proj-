@@ -3,10 +3,14 @@ import { AppHeader } from './components/AppHeader';
 import { CrowdSenseDashboard } from './components/CrowdSenseDashboard';
 import { HanaChatSidebar } from './components/HanaChatSidebar';
 import { PlacesGrid } from './components/PlacesGrid';
+import { DigitalTwin3D } from './components/DigitalTwin3D';
+import { LiveRegionMap } from './components/LiveRegionMap';
 import { apiUrl } from './config';
 
 export const App: React.FC = () => {
-  const [activeView, setActiveView] = useState<'crowd' | 'places'>('crowd');
+  const [activeView, setActiveView] = useState<'crowd' | 'places' | 'twin'>('crowd');
+  const [isTwin2DMode, setIsTwin2DMode] = useState<boolean>(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [isHanaVisible, setIsHanaVisible] = useState<boolean>(true);
   const [sessionId] = useState<string>(() => {
     return (
@@ -67,6 +71,63 @@ export const App: React.FC = () => {
         >
           {activeView === 'crowd' ? (
             <CrowdSenseDashboard onAskHana={handleAskHana} />
+          ) : activeView === 'twin' ? (
+            <div className="space-y-4 pb-12">
+              <div className="bg-white p-5 rounded-2xl border border-[#E1EAF1] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h1 className="text-xl font-bold text-[#14283F] flex items-center gap-2">
+                    <span>Mount Fuji & Five Lakes 3D Digital Twin</span>
+                    <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full uppercase">
+                      Spatial GIS & GTFS-JP
+                    </span>
+                  </h1>
+                  <p className="text-xs text-[#718198] mt-1">
+                    Real Three.js 3D simulation with authentic Mount Fuji elevation model, lake bathymetry, 35 verified landmarks, and Fujikyu Railway transit nodes.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsTwin2DMode(false)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      !isTwin2DMode
+                        ? 'bg-[#078ACB] text-white shadow-xs'
+                        : 'bg-[#F5F8FB] text-[#718198] hover:text-[#14283F] border border-[#E1EAF1]'
+                    }`}
+                  >
+                    3D Digital Twin
+                  </button>
+                  <button
+                    onClick={() => setIsTwin2DMode(true)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      isTwin2DMode
+                        ? 'bg-[#078ACB] text-white shadow-xs'
+                        : 'bg-[#F5F8FB] text-[#718198] hover:text-[#14283F] border border-[#E1EAF1]'
+                    }`}
+                  >
+                    2D Region Map
+                  </button>
+                </div>
+              </div>
+
+              {isTwin2DMode ? (
+                <div className="bg-white p-5 rounded-2xl border border-[#E1EAF1] shadow-xs">
+                  <LiveRegionMap
+                    onAskHana={handleAskHana}
+                    onSelectPlace={(id) => setSelectedPlaceId(id)}
+                    selectedPlaceId={selectedPlaceId}
+                  />
+                </div>
+              ) : (
+                <div className="bg-white p-2 rounded-2xl border border-[#E1EAF1] shadow-xs overflow-hidden">
+                  <DigitalTwin3D
+                    onAskHana={handleAskHana}
+                    onSelectPlace={(id) => setSelectedPlaceId(id)}
+                    selectedPlaceId={selectedPlaceId}
+                    onSwitchTo2D={() => setIsTwin2DMode(true)}
+                  />
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-4 pb-12">
               <div className="bg-white p-6 rounded-2xl border border-[#E1EAF1] shadow-xs">

@@ -467,14 +467,41 @@ class HanaAgent:
             try:
                 routing_svc = get_routing_service()
                 req_dep_time = dep_time_str or "09:00:00"
-                req = RouteSearchRequest(
-                    origin=orig_q,
-                    destination=dest_q,
-                    departure_time=req_dep_time,
-                    max_transfers=2,
-                    max_results=2
-                )
-                res = routing_svc.search_routes(req)
+                
+                # Check if origin is GPS coordinates or "current/my location"
+                m_coord = re.search(r"(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)", orig_q)
+                is_current_loc = any(w in orig_q.lower() for w in ["current location", "my location", "here", "gps"])
+                
+                if m_coord:
+                    u_lat, u_lon = float(m_coord.group(1)), float(m_coord.group(2))
+                    res = routing_svc.search_route_from_location(
+                        user_lat=u_lat,
+                        user_lon=u_lon,
+                        destination_query=dest_q,
+                        departure_time_str=req_dep_time,
+                        max_transfers=2,
+                        max_results=2
+                    )
+                elif is_current_loc:
+                    # Default GPS to Kawaguchiko central tourism hub
+                    res = routing_svc.search_route_from_location(
+                        user_lat=35.4981,
+                        user_lon=138.7690,
+                        destination_query=dest_q,
+                        departure_time_str=req_dep_time,
+                        max_transfers=2,
+                        max_results=2
+                    )
+                else:
+                    req = RouteSearchRequest(
+                        origin=orig_q,
+                        destination=dest_q,
+                        departure_time=req_dep_time,
+                        max_transfers=2,
+                        max_results=2
+                    )
+                    res = routing_svc.search_routes(req)
+
                 if res.journeys:
                     state["identified_journeys"] = [j.model_dump() for j in res.journeys]
                     transit_context = (

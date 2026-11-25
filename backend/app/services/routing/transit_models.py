@@ -141,6 +141,40 @@ class TransitStopSchema(BaseModel):
     is_railway: bool
 
 
+class NearbyStopSchema(BaseModel):
+    stop_id: str
+    stop_name_ja: str
+    stop_name_en: str
+    lat: float
+    lon: float
+    distance_meters: float
+    walking_time_seconds: int
+    is_railway: bool
+
+
+class NearbyStopsRequest(BaseModel):
+    latitude: float = Field(..., ge=-90.0, le=90.0, description="Latitude")
+    longitude: float = Field(..., ge=-180.0, le=180.0, description="Longitude")
+    max_distance_meters: float = Field(2000.0, ge=50.0, le=20000.0)
+    limit: int = Field(5, ge=1, le=20)
+
+
+class NearbyStopsResponse(BaseModel):
+    user_latitude: float
+    user_longitude: float
+    nearby_stops: List[NearbyStopSchema]
+    total_found: int
+
+
+class RouteFromLocationRequest(BaseModel):
+    latitude: float = Field(..., ge=-90.0, le=90.0, description="User current latitude")
+    longitude: float = Field(..., ge=-180.0, le=180.0, description="User current longitude")
+    destination: str = Field(..., description="Target destination place ID, landmark, or stop name")
+    departure_time: Optional[str] = Field(None, description="Preferred departure time HH:MM or HH:MM:SS")
+    max_transfers: int = Field(2, ge=0, le=4)
+    max_results: int = Field(3, ge=1, le=10)
+
+
 class RouteSearchResponse(BaseModel):
     origin: TransitStopSchema
     destination: TransitStopSchema

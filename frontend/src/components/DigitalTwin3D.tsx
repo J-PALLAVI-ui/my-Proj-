@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { CrowdLevel } from '../types';
+import { apiUrl } from '../config';
 import { 
   Compass, 
   Sun, 
@@ -11,7 +12,8 @@ import {
   Clock, 
   DollarSign, 
   MessageSquare, 
-  Map as MapIcon
+  Map as MapIcon,
+  Navigation
 } from 'lucide-react';
 
 interface DigitalTwin3DProps {
@@ -206,6 +208,30 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
   const cameraDistanceRef = useRef(110);
   const cameraThetaRef = useRef(Math.PI / 4);
   const cameraPhiRef = useRef(Math.PI / 3);
+
+  // Fetch real-time digital twin dataset from backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSpatialData = async () => {
+      try {
+        let res = await fetch(apiUrl('/api/v1/digital-twin/data?scenario=high'));
+        if (!res.ok) res = await fetch(apiUrl('/api/digital-twin/data?scenario=high'));
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (data.landmarks && data.landmarks.length > 0 && _selectedPlaceId) {
+            const matched = data.landmarks.find((l: Landmark3D) => l.id === _selectedPlaceId);
+            if (matched) setActiveLocation(matched);
+          }
+        }
+      } catch (err) {
+        console.warn('Digital twin spatial fetch notice:', err);
+      }
+    };
+    fetchSpatialData();
+    return () => {
+      isMounted = false;
+    };
+  }, [_selectedPlaceId]);
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -477,7 +503,8 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
       // Gentle floating animation on pin beacons
       if (pinsGroupRef.current) {
         pinsGroupRef.current.children.forEach((pin, idx) => {
-          pin.position.y = (LANDMARKS_3D[idx]?.altitude || 1) + 1 + Math.sin(elapsedTime * 2 + idx) * 0.25;
+          const baseAlt = pin.userData?.landmark?.altitude ?? 1.2;
+          pin.position.y = baseAlt + 1 + Math.sin(elapsedTime * 2 + idx) * 0.25;
         });
       }
 
@@ -814,6 +841,13 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onAskHana(`How do I get to ${activeLocation.name_en} using Fujikyu bus or railway from Kawaguchiko Station?`)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-xs transition-colors"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>Get Route</span>
+                  </button>
                   <button
                     onClick={() => onAskHana(`Tell me about ${activeLocation.name_en} and the best time to visit.`)}
                     className="flex items-center gap-1 px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs shadow-xs transition-colors"

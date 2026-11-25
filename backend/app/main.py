@@ -1,5 +1,6 @@
 """FujiNova FastAPI Application Factory."""
 import os
+from typing import Any, Dict, List, Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -9,7 +10,8 @@ from backend.app.api.routes_health import router as health_router
 from backend.app.api.routes_places import router as places_router
 from backend.app.api.routes_chat import router as chat_router
 from backend.app.api.routes_routing import router as routing_router
-from backend.app.api.routes_crowd import router as crowd_router
+from backend.app.api.routes_crowd import router as crowd_router, divert_crowded_destination
+from backend.app.api.routes_digital_twin import router as digital_twin_router, get_digital_twin_data
 from backend.app.api.routes_itinerary import router as itinerary_router, api_generate_itinerary, api_update_itinerary, ItineraryGenerateRequest, ItineraryUpdateRequest
 from backend.app.api.routes_travel import router as travel_router, travel_search, travel_weather
 from backend.app.api.routes_conversations import (
@@ -75,6 +77,7 @@ app.include_router(places_router)
 app.include_router(chat_router)
 app.include_router(routing_router)
 app.include_router(crowd_router)
+app.include_router(digital_twin_router)
 app.include_router(itinerary_router)
 app.include_router(travel_router)
 app.include_router(conversations_router)
@@ -144,7 +147,47 @@ def api_crowd_status(scenario: CrowdScenario = "high"):
 
 @app.post("/api/crowd/recommendations", tags=["Crowd Compatibility"])
 def api_crowd_recommendations(request: CrowdRecommendationRequest):
-    return recommendation_service.get_recommendations(request)
+    try:
+        return recommendation_service.get_recommendations(request)
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404 if isinstance(e, ValueError) else 500, detail=str(e))
+
+@app.post("/api/crowd/divert", tags=["Crowd Compatibility"])
+def api_crowd_divert(request: Any = None):
+    from backend.app.services.crowd.crowd_models import CrowdDivertRequest
+    if isinstance(request, dict):
+        parsed = CrowdDivertRequest.model_validate(request)
+    elif request is None:
+        parsed = CrowdDivertRequest(current_place_id="kawaguchiko_oishi_park")
+    else:
+        parsed = request
+    return divert_crowded_destination(parsed)
+
+@app.get("/api/digital-twin/data", tags=["Digital Twin Compatibility"])
+def api_digital_twin_data(scenario: CrowdScenario = "high"):
+    return get_digital_twin_data(scenario=scenario)
+
+@app.post("/api/routes/nearby-stops", tags=["Transport Compatibility"])
+@app.post("/api/location/nearby-stops", tags=["Transport Compatibility"])
+def api_nearby_stops(request: Any = None):
+    from backend.app.services.routing.transit_models import NearbyStopsRequest
+    from backend.app.api.routes_routing import get_nearby_stops
+    if isinstance(request, dict):
+        parsed = NearbyStopsRequest.model_validate(request)
+    else:
+        parsed = request
+    return get_nearby_stops(parsed)
+
+@app.post("/api/routes/from-location", tags=["Transport Compatibility"])
+def api_routes_from_location(request: Any = None):
+    from backend.app.services.routing.transit_models import RouteFromLocationRequest
+    from backend.app.api.routes_routing import plan_route_from_location
+    if isinstance(request, dict):
+        parsed = RouteFromLocationRequest.model_validate(request)
+    else:
+        parsed = request
+    return plan_route_from_location(parsed)
 
 @app.get("/api/crowd/places/{place_id}", tags=["Crowd Compatibility"])
 def api_crowd_place(place_id: str, scenario: CrowdScenario = "high"):

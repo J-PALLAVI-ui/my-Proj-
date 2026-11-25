@@ -52,18 +52,22 @@ class RecommendationService:
         request: CrowdRecommendationRequest
     ) -> CrowdRecommendationResponse:
         """Evaluate origin destination and return ranked alternative choices."""
-        orig_place_dict = get_place_by_id(request.place_id)
+        target_id = request.place_id or request.current_place_id
+        if not target_id:
+            target_id = "kawaguchiko_oishi_park"
+
+        orig_place_dict = get_place_by_id(target_id)
         if not orig_place_dict:
-            raise ValueError(f"Destination '{request.place_id}' not found in verified database.")
+            raise ValueError(f"Destination '{target_id}' not found in verified database.")
 
         orig_place = Place.model_validate(orig_place_dict)
-        orig_crowd = crowd_service.get_place_crowd_status(request.place_id, request.scenario)
+        orig_crowd = crowd_service.get_place_crowd_status(target_id, request.scenario)
 
         # Retrieve all places in database
         all_places_dicts = search_places_db(limit=100)
         candidates = [
             Place.model_validate(p) for p in all_places_dicts
-            if p["place_id"] != request.place_id
+            if p["place_id"] != target_id
         ]
 
         scored_cards: List[CrowdAlternativeCard] = []

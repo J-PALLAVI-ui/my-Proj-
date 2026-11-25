@@ -163,3 +163,21 @@ class CrowdRecommendationResponse(BaseModel):
     @computed_field
     def real_time_telemetry_status(self) -> str:
         return "UNAVAILABLE"
+
+
+class CrowdDivertRequest(BaseModel):
+    current_place_id: str = Field(..., description="Currently crowded place ID (e.g. 'arakurayama_chureito')")
+    preference: CrowdPreference = Field("quiet", description="Crowd preference")
+    scenario: CrowdScenario = Field("high", description="Crowd scenario")
+    target_alternative_id: Optional[str] = Field(None, description="Optional user-selected alternative place ID")
+
+
+class CrowdDivertResponse(BaseModel):
+    original_place_id: str
+    original_place_name: str
+    original_crowd_level: str
+    diverted_alternative: CrowdAlternativeCard
+    crowd_reduction_percent: int
+    transit_connection: Optional[Dict[str, Any]] = None
+    diversion_advice: str
+    status: str = "success"

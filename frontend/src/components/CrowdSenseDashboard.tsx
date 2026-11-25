@@ -346,6 +346,19 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
                 {activePlaceStatus?.congestion_advisory ||
                   'High tour bus arrivals; lakefront promenade heavily congested.'}
               </div>
+
+              {onAskHana && (
+                <button
+                  onClick={() =>
+                    onAskHana(
+                      `How do I reach ${activePlaceStatus?.name_en || 'Oishi Park'} using Fujikyu bus or train from Kawaguchiko Station?`
+                    )
+                  }
+                  className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-[#078ACB] bg-[#EBF5FB] hover:bg-[#DDF0FA] border border-[#BDE0F5] rounded-xl transition-colors shadow-2xs"
+                >
+                  <span>🚌 Get Fujikyu Bus Schedule</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -497,14 +510,24 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
                       </div>
 
                       {onAskHana && (
-                        <button
-                          onClick={() =>
-                            onAskHana(`Tell me about visiting ${altNameEn} as an alternative to Oishi Park.`)
-                          }
-                          className="w-full text-[10px] text-[#078ACB] hover:underline text-center font-medium block"
-                        >
-                          Ask Hana about {altNameEn} →
-                        </button>
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <button
+                            onClick={() =>
+                              onAskHana(`Give me the Fujikyu bus/railway route from Kawaguchiko Station to ${altNameEn} with stops, departure times, and fare.`)
+                            }
+                            className="flex-1 py-1 px-2 text-[10px] font-semibold text-[#078ACB] bg-[#EBF5FB] hover:bg-[#DDF0FA] rounded-md transition-colors text-center border border-[#BDE0F5]"
+                          >
+                            🚌 Fujikyu Route
+                          </button>
+                          <button
+                            onClick={() =>
+                              onAskHana(`Tell me about visiting ${altNameEn} as a quieter alternative to ${activePlaceStatus?.name_en || 'Oishi Park'}.`)
+                            }
+                            className="flex-1 py-1 px-2 text-[10px] font-semibold text-[#425466] bg-[#F5F8FB] hover:bg-[#E1EAF1] rounded-md transition-colors text-center border border-[#E1EAF1]"
+                          >
+                            💬 Ask Hana
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

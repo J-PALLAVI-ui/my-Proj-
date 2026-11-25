@@ -1,9 +1,9 @@
 import React from 'react';
-import { Mountain, Compass, MapPin, MessageSquare } from 'lucide-react';
+import { Mountain, Compass, MapPin, MessageSquare, Globe2 } from 'lucide-react';
 
 interface AppHeaderProps {
-  activeView: 'crowd' | 'places';
-  onNavigate: (view: 'crowd' | 'places') => void;
+  activeView: 'crowd' | 'places' | 'twin';
+  onNavigate: (view: 'crowd' | 'places' | 'twin') => void;
   activeModel: string;
   isHanaVisible: boolean;
   onToggleHana: () => void;
@@ -46,6 +46,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded uppercase">
               Stage 3
             </span>
+          </button>
+
+          {/* 3D Digital Twin */}
+          <button
+            onClick={() => onNavigate('twin')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeView === 'twin'
+                ? 'bg-[#EBF5FB] text-[#078ACB] border border-[#BDE0F5]'
+                : 'text-[#718198] hover:text-[#14283F] hover:bg-[#F5F8FB]'
+            }`}
+          >
+            <Globe2 className="w-4 h-4 text-[#078ACB]" />
+            <span>3D Digital Twin</span>
           </button>
 
           {/* Places Catalogue */}
