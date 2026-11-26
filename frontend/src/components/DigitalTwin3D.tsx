@@ -187,6 +187,8 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
 }) => {
   const { setSelectedPlace, generateTimePlan, timeBudgetHours, openWalkthrough } = useTrip();
   const mountRef = useRef<HTMLDivElement>(null);
+  const [landmarksList, setLandmarksList] = useState<Landmark3D[]>(LANDMARKS_3D);
+  const landmarksListRef = useRef<Landmark3D[]>(LANDMARKS_3D);
   const [activeLocation, setActiveLocation] = useState<Landmark3D>(LANDMARKS_3D[0]);
   const [timeOfDay, setTimeOfDay] = useState<'day' | 'sunset' | 'night'>('day');
   const [showTransit, setShowTransit] = useState(true);
@@ -212,6 +214,53 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
   const cameraThetaRef = useRef(Math.PI / 4);
   const cameraPhiRef = useRef(Math.PI / 3);
 
+  const populatePins = (items: Landmark3D[], pinsGroup: THREE.Group, crowdGroup: THREE.Group) => {
+    while (pinsGroup.children.length > 0) {
+      pinsGroup.remove(pinsGroup.children[0]);
+    }
+    while (crowdGroup.children.length > 0) {
+      crowdGroup.remove(crowdGroup.children[0]);
+    }
+
+    items.forEach((loc) => {
+      const pinHolder = new THREE.Group();
+      pinHolder.position.set(loc.x, (loc.altitude || 1.2) + 1, loc.z);
+
+      const pinGeo = new THREE.SphereGeometry(1.1, 14, 14);
+      const isGem = (loc as any).discovery_type === 'HIDDEN_GEM';
+      const pinColor = isGem
+        ? 0x10b981
+        : (loc.category === 'viewpoint' ? 0x0284c7 : (loc.category === 'cultural' ? 0xe11d48 : 0x8b5cf6));
+      const pinMat = new THREE.MeshStandardMaterial({
+        color: pinColor,
+        roughness: 0.3,
+        metalness: 0.5,
+        emissive: pinColor,
+        emissiveIntensity: 0.3
+      });
+      const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+      pinMesh.castShadow = true;
+      pinHolder.add(pinMesh);
+
+      const stemGeo = new THREE.CylinderGeometry(0.18, 0.18, (loc.altitude || 1.2) + 2, 8);
+      const stemMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const stemMesh = new THREE.Mesh(stemGeo, stemMat);
+      stemMesh.position.set(0, -((loc.altitude || 1.2) + 2) / 2, 0);
+      pinHolder.add(stemMesh);
+
+      pinHolder.userData = { landmark: loc };
+      pinsGroup.add(pinHolder);
+
+      const ringGeo = new THREE.RingGeometry(2.0, 3.8, 24);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringColor = loc.crowd_level === 'low' ? 0x10b981 : (loc.crowd_level === 'moderate' ? 0xf59e0b : 0xf43f5e);
+      const ringMat = new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.position.set(loc.x, 0.4, loc.z);
+      crowdGroup.add(ringMesh);
+    });
+  };
+
   // Fetch real-time digital twin dataset from backend
   useEffect(() => {
     let isMounted = true;
@@ -221,9 +270,19 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
         if (!res.ok) res = await fetch(apiUrl('/api/digital-twin/data?scenario=high'));
         if (res.ok && isMounted) {
           const data = await res.json();
-          if (data.landmarks && data.landmarks.length > 0 && _selectedPlaceId) {
-            const matched = data.landmarks.find((l: Landmark3D) => l.id === _selectedPlaceId);
-            if (matched) setActiveLocation(matched);
+          if (data.landmarks && data.landmarks.length > 0) {
+            setLandmarksList(data.landmarks);
+            landmarksListRef.current = data.landmarks;
+            if (pinsGroupRef.current && crowdGroupRef.current) {
+              populatePins(data.landmarks, pinsGroupRef.current, crowdGroupRef.current);
+            }
+            if (_selectedPlaceId) {
+              const matched = data.landmarks.find((l: Landmark3D) => l.id === _selectedPlaceId);
+              if (matched) {
+                setActiveLocation(matched);
+                flyTo(matched.x, matched.z, 50);
+              }
+            }
           }
         }
       } catch (err) {
@@ -415,44 +474,8 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
     scene.add(crowdGroup);
     crowdGroupRef.current = crowdGroup;
 
-    // Build 3D Pins
-    LANDMARKS_3D.forEach((loc) => {
-      const pinHolder = new THREE.Group();
-      pinHolder.position.set(loc.x, loc.altitude + 1, loc.z);
-
-      // Sphere beacon
-      const pinGeo = new THREE.SphereGeometry(1.2, 16, 16);
-      const pinColor = loc.category === 'viewpoint' ? 0x0284c7 : (loc.category === 'cultural' ? 0xe11d48 : 0x10b981);
-      const pinMat = new THREE.MeshStandardMaterial({
-        color: pinColor,
-        roughness: 0.3,
-        metalness: 0.5,
-        emissive: pinColor,
-        emissiveIntensity: 0.3
-      });
-      const pinMesh = new THREE.Mesh(pinGeo, pinMat);
-      pinMesh.castShadow = true;
-      pinHolder.add(pinMesh);
-
-      // Vertical stem
-      const stemGeo = new THREE.CylinderGeometry(0.2, 0.2, loc.altitude + 2, 8);
-      const stemMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      const stemMesh = new THREE.Mesh(stemGeo, stemMat);
-      stemMesh.position.set(0, -(loc.altitude + 2) / 2, 0);
-      pinHolder.add(stemMesh);
-
-      pinHolder.userData = { landmark: loc };
-      pinsGroup.add(pinHolder);
-
-      // Crowd Heatmap ring on the ground
-      const ringGeo = new THREE.RingGeometry(2.5, 4.5, 32);
-      ringGeo.rotateX(-Math.PI / 2);
-      const ringColor = loc.crowd_level === 'low' ? 0x10b981 : (loc.crowd_level === 'moderate' ? 0xf59e0b : 0xf43f5e);
-      const ringMat = new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.45, side: THREE.DoubleSide });
-      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.position.set(loc.x, 0.4, loc.z);
-      crowdGroup.add(ringMesh);
-    });
+    // Build 3D Pins from dynamic or canonical landmarks
+    populatePins(landmarksListRef.current, pinsGroup, crowdGroup);
 
     // 8. Public Transit Route Lines (Red Line, Green Line, Blue Line, Fujikyu Rail)
     const addRouteLine = (points: THREE.Vector3[], color: number) => {
@@ -695,7 +718,7 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
           <div className="flex items-center gap-1.5 px-2 py-1">
             <Compass className="w-4 h-4 text-sky-400" />
             <span className="text-xs font-bold text-white tracking-wide">3D Digital Twin</span>
-            <span className="text-[10px] text-sky-400/80 font-mono">Mt. Fuji (3,776m)</span>
+            <span className="text-[10px] text-sky-400/80 font-mono">Mt. Fuji (3,776m) • {landmarksList.length} Landmarks</span>
           </div>
 
           <div className="h-4 w-px bg-slate-700" />
@@ -819,9 +842,16 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
                     {activeLocation.name_ja}
                   </p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getCrowdBadge(activeLocation.crowd_level).bg}`}>
-                  {getCrowdBadge(activeLocation.crowd_level).label}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {(activeLocation as any).discovery_type === 'HIDDEN_GEM' && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-500/20 text-emerald-300 border-emerald-500/40">
+                      Hidden Gem
+                    </span>
+                  )}
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getCrowdBadge(activeLocation.crowd_level).bg}`}>
+                    {getCrowdBadge(activeLocation.crowd_level).label}
+                  </span>
+                </div>
               </div>
 
               <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">

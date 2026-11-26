@@ -8,6 +8,7 @@ export const PlacesGrid: React.FC = () => {
   const [places, setPlaces] = useState<Place[]>([]);
   const [filteredPlaces, setFilteredPlaces] = useState<Place[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedDiscovery, setSelectedDiscovery] = useState<'all' | 'FAMOUS' | 'HIDDEN_GEM'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedAccess, setSelectedAccess] = useState<string>('all');
   const [indoorOnly, setIndoorOnly] = useState(false);
@@ -17,9 +18,9 @@ export const PlacesGrid: React.FC = () => {
   useEffect(() => {
     const loadPlaces = async () => {
       try {
-        let res = await fetch(apiUrl('/api/attractions?limit=100'));
+        let res = await fetch(apiUrl('/api/v1/places?limit=300'));
         if (!res.ok) {
-          res = await fetch(apiUrl('/api/v1/places?limit=100'));
+          res = await fetch(apiUrl('/api/attractions?limit=300'));
         }
         if (!res.ok) {
           throw new Error(`API returned HTTP ${res.status}`);
@@ -42,7 +43,7 @@ export const PlacesGrid: React.FC = () => {
       } catch (err: any) {
         // Fallback to /api/v1/places if /api/attractions failed
         try {
-          const res2 = await fetch(apiUrl('/api/v1/places?limit=100'));
+          const res2 = await fetch(apiUrl('/api/v1/places?limit=300'));
           if (res2.ok) {
             const data2 = await res2.json();
             const placesArray2: Place[] = Array.isArray(data2)
@@ -86,6 +87,10 @@ export const PlacesGrid: React.FC = () => {
       );
     }
 
+    if (selectedDiscovery !== 'all') {
+      result = result.filter((p) => p.discovery_type === selectedDiscovery);
+    }
+
     if (selectedCategory !== 'all') {
       result = result.filter((p) => p.primary_category === selectedCategory);
     }
@@ -99,7 +104,7 @@ export const PlacesGrid: React.FC = () => {
     }
 
     setFilteredPlaces(result);
-  }, [search, selectedCategory, selectedAccess, indoorOnly, places]);
+  }, [search, selectedDiscovery, selectedCategory, selectedAccess, indoorOnly, places]);
 
   const categories = ['all', 'viewpoint', 'museum', 'cultural', 'shrine', 'nature', 'park', 'onsen'];
 
@@ -113,17 +118,51 @@ export const PlacesGrid: React.FC = () => {
             <span>Fuji Five Lakes & Yamanashi Explorer</span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Browse 35 individually verified locations with field-level provenance, official hours, and barrier-free audit evidence.
+            Browse {places.length > 0 ? places.length : 237} individually verified locations with field-level provenance, official hours, and barrier-free audit evidence.
           </p>
         </div>
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Stage 1 Seed: {filteredPlaces.length} / {places.length} Verified</span>
+          <span>Verified Database: {filteredPlaces.length} / {places.length} Shown</span>
         </div>
       </div>
 
+      {/* Discovery Type Filter (Famous vs Hidden Gems) */}
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          onClick={() => setSelectedDiscovery('all')}
+          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
+            selectedDiscovery === 'all'
+              ? 'bg-[#14283F] text-white border-[#14283F] shadow-xs'
+              : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          All Destinations ({places.length})
+        </button>
+        <button
+          onClick={() => setSelectedDiscovery('FAMOUS')}
+          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
+            selectedDiscovery === 'FAMOUS'
+              ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+              : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'
+          }`}
+        >
+          Famous Attractions ({places.filter(p => p.discovery_type === 'FAMOUS').length || 136})
+        </button>
+        <button
+          onClick={() => setSelectedDiscovery('HIDDEN_GEM')}
+          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
+            selectedDiscovery === 'HIDDEN_GEM'
+              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+              : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+          }`}
+        >
+          Hidden Gems ({places.filter(p => p.discovery_type === 'HIDDEN_GEM').length || 101})
+        </button>
+      </div>
+
       {/* Filter & Search Bar */}
-      <div className="mt-6 flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <div className="mt-4 flex flex-col md:flex-row items-stretch md:items-center gap-3">
         {/* Search Input */}
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />

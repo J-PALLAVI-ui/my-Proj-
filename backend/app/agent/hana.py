@@ -259,6 +259,9 @@ class HanaAgent:
         return extract_crowd_query(text)
 
     def resolve_place_id(self, target_name: str) -> str:
+        matches = search_places_db(query=target_name, limit=1)
+        if matches:
+            return matches[0]["place_id"]
         name_lower = target_name.lower()
         if "oishi" in name_lower or "kawaguchiko_oishi_park" in name_lower:
             return "kawaguchiko_oishi_park"
@@ -357,10 +360,18 @@ class HanaAgent:
                 state["asked_questions"].append("stay_duration")
 
     def query_grounded_places(self, state: HanaState, limit: int = 4) -> List[Dict[str, Any]]:
-        """Query canonical SQLite places matching profile constraints."""
+        """Query canonical SQLite places matching profile constraints and discovery preferences."""
         profile = state["profile"]
         mobility = profile.get("mobility_needs")
         interests = profile.get("interests", [])
+
+        # Check if user asked for hidden gems or famous places in recent messages
+        discovery_type = None
+        user_msgs = " ".join([m.get("content", "") for m in state.get("messages", [])[-2:]]).lower()
+        if any(w in user_msgs for w in ["hidden gem", "hidden gems", "secret", "less known", "offbeat", "quiet spot"]):
+            discovery_type = "HIDDEN_GEM"
+        elif any(w in user_msgs for w in ["famous", "iconic", "must-visit", "top attraction", "popular"]):
+            discovery_type = "FAMOUS"
 
         accessibility_status = None
         if mobility in ("wheelchair", "stroller") or profile.get("mobility_limitations"):
@@ -369,11 +380,19 @@ class HanaAgent:
         category = interests[0] if interests else None
         places = search_places_db(
             category=category,
+            discovery_type=discovery_type,
             accessibility_status=accessibility_status,
             limit=limit
         )
 
-        if not places and category:
+        if not places and (category or discovery_type):
+            places = search_places_db(
+                discovery_type=discovery_type,
+                accessibility_status=accessibility_status,
+                limit=limit
+            )
+
+        if not places:
             places = search_places_db(
                 category="viewpoint",
                 accessibility_status=accessibility_status,

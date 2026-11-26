@@ -64,7 +64,7 @@ class RecommendationService:
         orig_crowd = crowd_service.get_place_crowd_status(target_id, request.scenario)
 
         # Retrieve all places in database
-        all_places_dicts = search_places_db(limit=100)
+        all_places_dicts = search_places_db(limit=300)
         candidates = [
             Place.model_validate(p) for p in all_places_dicts
             if p["place_id"] != target_id

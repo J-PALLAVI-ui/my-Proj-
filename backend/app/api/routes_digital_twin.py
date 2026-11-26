@@ -3,7 +3,8 @@ import math
 from typing import Dict, Any, List
 from fastapi import APIRouter, Query, status
 
-from backend.app.api.routes_places import list_places
+from backend.app.models.place import Place
+from backend.app.api.routes_places import search_places_db
 from backend.app.services.crowd.crowd_service import crowd_service
 from backend.app.services.crowd.crowd_models import CrowdScenario
 from backend.app.services.crowd.attraction_images import get_attraction_image
@@ -118,15 +119,18 @@ FUJI_FIVE_LAKES = [
 def get_digital_twin_data(
     scenario: CrowdScenario = Query("high", description="Simulated crowd scenario")
 ) -> Dict[str, Any]:
-    # 1. Retrieve all 35 verified places
-    places = list_places(limit=100)
+    # 1. Retrieve all verified places (up to 300)
+    raw_places = search_places_db(limit=300)
+    places = [Place.model_validate(p) if isinstance(p, dict) else p for p in raw_places]
     crowd_statuses = crowd_service.get_all_places_crowd_status(scenario=scenario)
 
     landmarks_3d = []
     for p in places:
         proj = project_lat_lon_to_3d(p.latitude, p.longitude)
         cs = crowd_statuses.get(p.place_id)
-        img_info = get_attraction_image(p.place_id, p.primary_category)
+        img_info = get_attraction_image(p.place_id)
+        img_url = p.image_url or img_info["url"]
+        img_attr = p.required_attribution or img_info.get("attribution", "")
 
         admission_str = p.general_admission_type.title()
         if p.general_admission_fee_jpy:
@@ -149,8 +153,8 @@ def get_digital_twin_data(
             "hours": p.opening_hours_text or "Check schedules",
             "admission": admission_str,
             "description": p.accessibility_evidence or f"Verified attraction located in {p.name_en}.",
-            "image_url": img_info["url"],
-            "image_attribution": img_info.get("attribution", ""),
+            "image_url": img_url,
+            "image_attribution": img_attr,
             "accessibility_status": p.accessibility_status,
             "wheelchair": p.accessibility_status == "VERIFIED_ACCESSIBLE",
         })

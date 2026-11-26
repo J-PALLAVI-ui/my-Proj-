@@ -1,0 +1,806 @@
+{
+  "total_count": 100,
+  "catalogue_type": "HIDDEN_GEM",
+  "candidates": [
+    {
+      "num": 101,
+      "name": "Noson Koen (Fujiyoshida Rural Park)",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Noson%20Koen%20%28Fujiyoshida%20Rural%20Park%29%20Fujiyoshida"
+    },
+    {
+      "num": 102,
+      "name": "Fujimi Takanori Park",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Fujimi%20Takanori%20Park%20Fujiyoshida"
+    },
+    {
+      "num": 103,
+      "name": "Kanatorii (Golden Torii)",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kanatorii%20%28Golden%20Torii%29%20Fujiyoshida"
+    },
+    {
+      "num": 104,
+      "name": "Suwanomori Nature Park (Fuji Pines Park)",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Suwanomori%20Nature%20Park%20%28Fuji%20Pines%20Park%29%20Fujiyoshida"
+    },
+    {
+      "num": 105,
+      "name": "Fuji Walking Park",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Fuji%20Walking%20Park%20Fujiyoshida"
+    },
+    {
+      "num": 106,
+      "name": "Mount Seto / Setoyama Observatory",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Seto%20/%20Setoyama%20Observatory%20Fujiyoshida"
+    },
+    {
+      "num": 107,
+      "name": "Nishiura District",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Nishiura%20District%20Fujiyoshida"
+    },
+    {
+      "num": 108,
+      "name": "Kinuyamachi / Higashiura Street",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kinuyamachi%20/%20Higashiura%20Street%20Fujiyoshida"
+    },
+    {
+      "num": 109,
+      "name": "Fujimi Bypass Viewpoint",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Fujimi%20Bypass%20Viewpoint%20Fujiyoshida"
+    },
+    {
+      "num": 110,
+      "name": "Shiroyama Higashi Rural Park",
+      "group": "Fujiyoshida hidden gems",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Shiroyama%20Higashi%20Rural%20Park%20Fujiyoshida"
+    },
+    {
+      "num": 111,
+      "name": "Fuji Sansaku Park",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Fuji%20Sansaku%20Park%20Fujiyoshida"
+    },
+    {
+      "num": 112,
+      "name": "Fuji Hokuroku Park",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Fuji%20Hokuroku%20Park%20Fujiyoshida"
+    },
+    {
+      "num": 113,
+      "name": "Shindo Pass",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Fuefuki / Kawaguchiko",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Shindo%20Pass%20Fuefuki%20/%20Kawaguchiko"
+    },
+    {
+      "num": 114,
+      "name": "Nakanokura Pass Observatory",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Motosuko / Minobu",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Nakanokura%20Pass%20Observatory%20Motosuko%20/%20Minobu"
+    },
+    {
+      "num": 115,
+      "name": "Nijumagari Pass",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Oshino / Minamitsuru",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Nijumagari%20Pass%20Oshino%20/%20Minamitsuru"
+    },
+    {
+      "num": 116,
+      "name": "Mount Ishiwari",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Yamanakako",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Ishiwari%20Yamanakako"
+    },
+    {
+      "num": 117,
+      "name": "Ishiwari Shrine",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Yamanakako",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Ishiwari%20Shrine%20Yamanakako"
+    },
+    {
+      "num": 118,
+      "name": "Hiraoyama",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Hiraoyama%20Yamanakako"
+    },
+    {
+      "num": 119,
+      "name": "Mount Ohira",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Ohira%20Yamanakako"
+    },
+    {
+      "num": 120,
+      "name": "Mount Takazasu",
+      "group": "Fuji Five Lakes and mountain viewpoints",
+      "region": "Yamanakako",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Takazasu%20Yamanakako"
+    },
+    {
+      "num": 121,
+      "name": "Mount Myojin",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Myojin%20Yamanakako"
+    },
+    {
+      "num": 122,
+      "name": "Yamanakako Panorama-dai",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Yamanakako%20Panorama-dai%20Yamanakako"
+    },
+    {
+      "num": 123,
+      "name": "Lake Yamanakako North Shore Cycling Path",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Yamanakako",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Lake%20Yamanakako%20North%20Shore%20Cycling%20Path%20Yamanakako"
+    },
+    {
+      "num": 124,
+      "name": "Hirano Beach",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Hirano%20Beach%20Yamanakako"
+    },
+    {
+      "num": 125,
+      "name": "Mikuni Pass",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mikuni%20Pass%20Yamanakako"
+    },
+    {
+      "num": 126,
+      "name": "Yamabushi Pass",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Doshi / Yamanakako",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Yamabushi%20Pass%20Doshi%20/%20Yamanakako"
+    },
+    {
+      "num": 127,
+      "name": "Otome Pass",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Gotemba / Hakone",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Otome%20Pass%20Gotemba%20/%20Hakone"
+    },
+    {
+      "num": 128,
+      "name": "Gokodai (Mount Ashiwada Lookout)",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Saiko / Kawaguchiko",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Gokodai%20%28Mount%20Ashiwada%20Lookout%29%20Saiko%20/%20Kawaguchiko"
+    },
+    {
+      "num": 129,
+      "name": "Sankodai Viewpoint",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Narusawa",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Sankodai%20Viewpoint%20Narusawa"
+    },
+    {
+      "num": 130,
+      "name": "Koyodai Lookout",
+      "group": "Lake Yamanakako and surrounding viewpoints",
+      "region": "Narusawa",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Koyodai%20Lookout%20Narusawa"
+    },
+    {
+      "num": 131,
+      "name": "Mount Mitsutoge",
+      "group": "Hiking and nature discoveries",
+      "region": "Nishikatsura / Fujikawaguchiko",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Mitsutoge%20Nishikatsura%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 132,
+      "name": "Mount Shakushi",
+      "group": "Hiking and nature discoveries",
+      "region": "Fujiyoshida / Oshino",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Shakushi%20Fujiyoshida%20/%20Oshino"
+    },
+    {
+      "num": 133,
+      "name": "Mount Onigatake",
+      "group": "Hiking and nature discoveries",
+      "region": "Saiko / Fujikawaguchiko",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Onigatake%20Saiko%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 134,
+      "name": "Mount Settogatake",
+      "group": "Hiking and nature discoveries",
+      "region": "Saiko / Fujikawaguchiko",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Settogatake%20Saiko%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 135,
+      "name": "Mount Ryugatake",
+      "group": "Hiking and nature discoveries",
+      "region": "Motosuko / Fujikawaguchiko",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Ryugatake%20Motosuko%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 136,
+      "name": "Kofuji",
+      "group": "Hiking and nature discoveries",
+      "region": "Subashiri / Oyama",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kofuji%20Subashiri%20/%20Oyama"
+    },
+    {
+      "num": 137,
+      "name": "Nagasaki Cape (Lake Kawaguchi)",
+      "group": "Hiking and nature discoveries",
+      "region": "Fujikawaguchiko",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Nagasaki%20Cape%20%28Lake%20Kawaguchi%29%20Fujikawaguchiko"
+    },
+    {
+      "num": 138,
+      "name": "Kuwazaki Lakeside Point",
+      "group": "Hiking and nature discoveries",
+      "region": "Fujikawaguchiko",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kuwazaki%20Lakeside%20Point%20Fujikawaguchiko"
+    },
+    {
+      "num": 139,
+      "name": "Ubuyagasaki",
+      "group": "Hiking and nature discoveries",
+      "region": "Fujikawaguchiko",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Ubuyagasaki%20Fujikawaguchiko"
+    },
+    {
+      "num": 140,
+      "name": "Nenba-hama",
+      "group": "Hiking and nature discoveries",
+      "region": "Saiko / Fujikawaguchiko",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Nenba-hama%20Saiko%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 141,
+      "name": "Saiko Wild Bird Forest Park",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Saiko / Fujikawaguchiko",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Saiko%20Wild%20Bird%20Forest%20Park%20Saiko%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 142,
+      "name": "Tateba-hama (Lake Shoji)",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Shojiko / Fujikawaguchiko",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Tateba-hama%20%28Lake%20Shoji%29%20Shojiko%20/%20Fujikawaguchiko"
+    },
+    {
+      "num": 143,
+      "name": "Lake Shibireko",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Ichikawamisato",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Lake%20Shibireko%20Ichikawamisato"
+    },
+    {
+      "num": 144,
+      "name": "Mount Kurodake",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Fujikawaguchiko",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Kurodake%20Fujikawaguchiko"
+    },
+    {
+      "num": 145,
+      "name": "Kaneyama Waterfall",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Fujiyoshida",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kaneyama%20Waterfall%20Fujiyoshida"
+    },
+    {
+      "num": 146,
+      "name": "Rokujizo Park",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Fujiyoshida",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Rokujizo%20Park%20Fujiyoshida"
+    },
+    {
+      "num": 147,
+      "name": "Lake Otomeko",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Yamanashi City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Lake%20Otomeko%20Yamanashi%20City"
+    },
+    {
+      "num": 148,
+      "name": "Tahara Falls",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Tsuru City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Tahara%20Falls%20Tsuru%20City"
+    },
+    {
+      "num": 149,
+      "name": "Tsuru Alps Hiking Trails",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Tsuru City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Tsuru%20Alps%20Hiking%20Trails%20Tsuru%20City"
+    },
+    {
+      "num": 150,
+      "name": "Mount Iwadono",
+      "group": "Saiko, Shojiko and surrounding areas",
+      "region": "Otsuki City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Iwadono%20Otsuki%20City"
+    },
+    {
+      "num": 151,
+      "name": "Mount Momokura",
+      "group": "Otsuki and Tsuru region",
+      "region": "Otsuki City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Momokura%20Otsuki%20City"
+    },
+    {
+      "num": 152,
+      "name": "Mount Takagawa",
+      "group": "Otsuki and Tsuru region",
+      "region": "Otsuki / Tsuru",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Takagawa%20Otsuki%20/%20Tsuru"
+    },
+    {
+      "num": 153,
+      "name": "Mount Ogiyama",
+      "group": "Otsuki and Tsuru region",
+      "region": "Otsuki / Uenohara",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Ogiyama%20Otsuki%20/%20Uenohara"
+    },
+    {
+      "num": 154,
+      "name": "Mount Gongen",
+      "group": "Otsuki and Tsuru region",
+      "region": "Uenohara",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Gongen%20Uenohara"
+    },
+    {
+      "num": 155,
+      "name": "Hanasaki Honjin (Hoshino House)",
+      "group": "Otsuki and Tsuru region",
+      "region": "Otsuki City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Hanasaki%20Honjin%20%28Hoshino%20House%29%20Otsuki%20City"
+    },
+    {
+      "num": 156,
+      "name": "Iwaibashi Bridge",
+      "group": "Otsuki and Tsuru region",
+      "region": "Koshu City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Iwaibashi%20Bridge%20Koshu%20City"
+    },
+    {
+      "num": 157,
+      "name": "Ryumon Gorge",
+      "group": "Otsuki and Tsuru region",
+      "region": "Koshu City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Ryumon%20Gorge%20Koshu%20City"
+    },
+    {
+      "num": 158,
+      "name": "Kanzo Yashiki",
+      "group": "Otsuki and Tsuru region",
+      "region": "Koshu City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kanzo%20Yashiki%20Koshu%20City"
+    },
+    {
+      "num": 159,
+      "name": "Daigahara Shuku",
+      "group": "Otsuki and Tsuru region",
+      "region": "Hokuto City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Daigahara%20Shuku%20Hokuto%20City"
+    },
+    {
+      "num": 160,
+      "name": "Shinpu Castle Ruins",
+      "group": "Otsuki and Tsuru region",
+      "region": "Nirasaki City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Shinpu%20Castle%20Ruins%20Nirasaki%20City"
+    },
+    {
+      "num": 161,
+      "name": "Umenoki Iseki Park",
+      "group": "Historic and archaeological discoveries",
+      "region": "Hokuto City",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Umenoki%20Iseki%20Park%20Hokuto%20City"
+    },
+    {
+      "num": 162,
+      "name": "Kinsei Iseki Park",
+      "group": "Historic and archaeological discoveries",
+      "region": "Hokuto City",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kinsei%20Iseki%20Park%20Hokuto%20City"
+    },
+    {
+      "num": 163,
+      "name": "Hokuto Archaeological Museum",
+      "group": "Historic and archaeological discoveries",
+      "region": "Hokuto City",
+      "category": "museum",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Hokuto%20Archaeological%20Museum%20Hokuto%20City"
+    },
+    {
+      "num": 164,
+      "name": "Shakado Museum of Jomon Culture",
+      "group": "Historic and archaeological discoveries",
+      "region": "Fuefuki / Koshu",
+      "category": "museum",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Shakado%20Museum%20of%20Jomon%20Culture%20Fuefuki%20/%20Koshu"
+    },
+    {
+      "num": 165,
+      "name": "Omura Art Museum",
+      "group": "Historic and archaeological discoveries",
+      "region": "Nirasaki City",
+      "category": "museum",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Omura%20Art%20Museum%20Nirasaki%20City"
+    },
+    {
+      "num": 166,
+      "name": "Takeda Hachimangu Shrine",
+      "group": "Historic and archaeological discoveries",
+      "region": "Nirasaki City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Takeda%20Hachimangu%20Shrine%20Nirasaki%20City"
+    },
+    {
+      "num": 167,
+      "name": "Kanazakura Shrine",
+      "group": "Historic and archaeological discoveries",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kanazakura%20Shrine%20Kofu%20City"
+    },
+    {
+      "num": 168,
+      "name": "Meotogi Shrine",
+      "group": "Historic and archaeological discoveries",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Meotogi%20Shrine%20Kofu%20City"
+    },
+    {
+      "num": 169,
+      "name": "Hosenji Temple",
+      "group": "Historic and archaeological discoveries",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Hosenji%20Temple%20Kofu%20City"
+    },
+    {
+      "num": 170,
+      "name": "Nojoji Temple",
+      "group": "Historic and archaeological discoveries",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Nojoji%20Temple%20Kofu%20City"
+    },
+    {
+      "num": 171,
+      "name": "Tokoji Temple",
+      "group": "Local temples, rivers and villages",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Tokoji%20Temple%20Kofu%20City"
+    },
+    {
+      "num": 172,
+      "name": "Enkoin Temple",
+      "group": "Local temples, rivers and villages",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Enkoin%20Temple%20Kofu%20City"
+    },
+    {
+      "num": 173,
+      "name": "Chozenji Temple",
+      "group": "Local temples, rivers and villages",
+      "region": "Kofu City",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Chozenji%20Temple%20Kofu%20City"
+    },
+    {
+      "num": 174,
+      "name": "Sanbuichi Yusui Kan",
+      "group": "Local temples, rivers and villages",
+      "region": "Hokuto City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Sanbuichi%20Yusui%20Kan%20Hokuto%20City"
+    },
+    {
+      "num": 175,
+      "name": "Kawamatagawa Valley",
+      "group": "Local temples, rivers and villages",
+      "region": "Hokuto City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kawamatagawa%20Valley%20Hokuto%20City"
+    },
+    {
+      "num": 176,
+      "name": "Wanitsuka no Sakura",
+      "group": "Local temples, rivers and villages",
+      "region": "Nirasaki City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Wanitsuka%20no%20Sakura%20Nirasaki%20City"
+    },
+    {
+      "num": 177,
+      "name": "Yamataka Jindai Zakura",
+      "group": "Local temples, rivers and villages",
+      "region": "Hokuto City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Yamataka%20Jindai%20Zakura%20Hokuto%20City"
+    },
+    {
+      "num": 178,
+      "name": "Mount Mizugaki",
+      "group": "Local temples, rivers and villages",
+      "region": "Hokuto City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Mizugaki%20Hokuto%20City"
+    },
+    {
+      "num": 179,
+      "name": "Mount Daibosatsu",
+      "group": "Local temples, rivers and villages",
+      "region": "Koshu / Tabayama",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Mount%20Daibosatsu%20Koshu%20/%20Tabayama"
+    },
+    {
+      "num": 180,
+      "name": "Road Station Kai Yamato",
+      "group": "Local temples, rivers and villages",
+      "region": "Koshu City",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Road%20Station%20Kai%20Yamato%20Koshu%20City"
+    },
+    {
+      "num": 181,
+      "name": "Road Station Doshi",
+      "group": "Local cultural and countryside destinations",
+      "region": "Doshi Village",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Road%20Station%20Doshi%20Doshi%20Village"
+    },
+    {
+      "num": 182,
+      "name": "Road Station Tomizawa",
+      "group": "Local cultural and countryside destinations",
+      "region": "Nanbu Town",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Road%20Station%20Tomizawa%20Nanbu%20Town"
+    },
+    {
+      "num": 183,
+      "name": "Road Station Nanbu",
+      "group": "Local cultural and countryside destinations",
+      "region": "Nanbu Town",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Road%20Station%20Nanbu%20Nanbu%20Town"
+    },
+    {
+      "num": 184,
+      "name": "Rokugo Seal Museum",
+      "group": "Local cultural and countryside destinations",
+      "region": "Ichikawamisato",
+      "category": "museum",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Rokugo%20Seal%20Museum%20Ichikawamisato"
+    },
+    {
+      "num": 185,
+      "name": "Fireworks Museum",
+      "group": "Local cultural and countryside destinations",
+      "region": "Ichikawamisato",
+      "category": "museum",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Fireworks%20Museum%20Ichikawamisato"
+    },
+    {
+      "num": 186,
+      "name": "Yume Kobo Washi Workshop",
+      "group": "Local cultural and countryside destinations",
+      "region": "Ichikawamisato",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Yume%20Kobo%20Washi%20Workshop%20Ichikawamisato"
+    },
+    {
+      "num": 187,
+      "name": "Daimonhirin Park",
+      "group": "Local cultural and countryside destinations",
+      "region": "Ichikawamisato",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Daimonhirin%20Park%20Ichikawamisato"
+    },
+    {
+      "num": 188,
+      "name": "Akasawashuku",
+      "group": "Local cultural and countryside destinations",
+      "region": "Hayakawa Town",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Akasawashuku%20Hayakawa%20Town"
+    },
+    {
+      "num": 189,
+      "name": "Narada Village",
+      "group": "Local cultural and countryside destinations",
+      "region": "Hayakawa Town",
+      "category": "onsen",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Narada%20Village%20Hayakawa%20Town"
+    },
+    {
+      "num": 190,
+      "name": "Keiunkan",
+      "group": "Local cultural and countryside destinations",
+      "region": "Hayakawa Town",
+      "category": "onsen",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Keiunkan%20Hayakawa%20Town"
+    },
+    {
+      "num": 191,
+      "name": "Kumano Shrine (Shimobe)",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Minobu Town",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kumano%20Shrine%20%28Shimobe%29%20Minobu%20Town"
+    },
+    {
+      "num": 192,
+      "name": "Yu no Oku Museum of Gold Mining History",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Minobu Town",
+      "category": "museum",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Yu%20no%20Oku%20Museum%20of%20Gold%20Mining%20History%20Minobu%20Town"
+    },
+    {
+      "num": 193,
+      "name": "Lake Mizugakiko",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Hokuto City",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Lake%20Mizugakiko%20Hokuto%20City"
+    },
+    {
+      "num": 194,
+      "name": "Hikawa Keikoku Leisure Center",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Minobu / Nanbu",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Hikawa%20Keikoku%20Leisure%20Center%20Minobu%20/%20Nanbu"
+    },
+    {
+      "num": 195,
+      "name": "Amehata Suzuri no Sato Kenshoan",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Hayakawa Town",
+      "category": "cultural",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Amehata%20Suzuri%20no%20Sato%20Kenshoan%20Hayakawa%20Town"
+    },
+    {
+      "num": 196,
+      "name": "Masuho Furusato Shizenjuku",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Fujikawa Town",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Masuho%20Furusato%20Shizenjuku%20Fujikawa%20Town"
+    },
+    {
+      "num": 197,
+      "name": "Matosama (Murokubo River)",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Doshi Village",
+      "category": "nature",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Matosama%20%28Murokubo%20River%29%20Doshi%20Village"
+    },
+    {
+      "num": 198,
+      "name": "Asagiri Sawayaka Parking Viewpoint",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Fujinomiya / Asagiri",
+      "category": "viewpoint",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Asagiri%20Sawayaka%20Parking%20Viewpoint%20Fujinomiya%20/%20Asagiri"
+    },
+    {
+      "num": 199,
+      "name": "Kotokuji Temple",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Fujikawaguchiko",
+      "category": "shrine",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Kotokuji%20Temple%20Fujikawaguchiko"
+    },
+    {
+      "num": 200,
+      "name": "Shiraito Nature Park",
+      "group": "Minobu, Hokuto and western Fuji discoveries",
+      "region": "Fujinomiya",
+      "category": "park",
+      "search_url": "https://www.google.com/search?tbm=isch&q=Shiraito%20Nature%20Park%20Fujinomiya"
+    }
+  ]
+}

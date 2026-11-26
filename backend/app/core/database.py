@@ -31,30 +31,71 @@ def init_db(db_path: Optional[str] = None) -> None:
             place_id TEXT PRIMARY KEY,
             name_ja TEXT NOT NULL,
             name_en TEXT,
+            alternate_names TEXT,
+            official_address TEXT,
+            municipality TEXT,
+            prefecture TEXT DEFAULT 'Yamanashi',
+            description TEXT,
+            short_description TEXT,
             latitude REAL NOT NULL,
             longitude REAL NOT NULL,
             coords_source TEXT NOT NULL,
+            elevation_m INTEGER,
+            region_id TEXT,
             primary_category TEXT NOT NULL,
             sub_category TEXT,
+            discovery_type TEXT DEFAULT 'FAMOUS',
+            popularity_classification TEXT,
+            seasonal_tags TEXT,
+            interests TEXT,
+            recommended_for TEXT,
             opening_status TEXT NOT NULL CHECK(
                 opening_status IN ('ALWAYS_OPEN', 'REGULAR_HOURS', 'SEASONAL_CLOSURE', 'TEMPORARILY_CLOSED', 'UNKNOWN')
             ),
             opening_hours_text TEXT,
             opening_hours_source TEXT NOT NULL,
+            seasonal_closure TEXT,
+            best_visit_months TEXT,
             general_admission_type TEXT NOT NULL CHECK(
                 general_admission_type IN ('FREE', 'PAID', 'UNKNOWN')
             ),
             general_admission_fee_jpy INTEGER,
             optional_activities_fee_desc TEXT,
             admission_fee_source TEXT NOT NULL,
+            fee_last_verified TEXT,
             accessibility_status TEXT NOT NULL CHECK(
                 accessibility_status IN ('VERIFIED_ACCESSIBLE', 'PARTIAL_STEPS', 'STEEP_STAIRS', 'INACCESSIBLE', 'UNKNOWN')
             ),
             accessibility_evidence TEXT,
             stair_step_count INTEGER,
+            wheelchair_suitability TEXT,
             accessibility_source TEXT NOT NULL,
+            image_url TEXT,
+            image_source_url TEXT,
+            image_attribution TEXT,
+            image_license TEXT,
+            image_alt_text TEXT,
+            image_verified_at TEXT,
+            photo_search_url TEXT,
+            nearest_bus_stops TEXT,
+            nearest_railway_stations TEXT,
+            gtfs_stop_ids TEXT,
+            transport_operators TEXT,
+            transit_access_status TEXT DEFAULT 'VERIFIED_TRANSIT',
+            walking_distance_to_nearest_stop TEXT,
+            estimated_visit_duration_minutes INTEGER DEFAULT 60,
             fuji_view_rating INTEGER NOT NULL CHECK(fuji_view_rating BETWEEN 1 AND 5),
+            best_time_to_visit TEXT,
             indoor_alternative BOOLEAN NOT NULL,
+            family_friendly BOOLEAN DEFAULT 1,
+            elderly_friendly BOOLEAN DEFAULT 1,
+            facilities_available TEXT,
+            expected_crowd_profile TEXT,
+            weekday_crowd_profile TEXT,
+            weekend_crowd_profile TEXT,
+            seasonal_crowd_profile TEXT,
+            crowd_prediction_method TEXT DEFAULT 'CALIBRATED_HEURISTIC',
+            crowd_confidence INTEGER DEFAULT 90,
             provenance_tier TEXT NOT NULL CHECK(
                 provenance_tier IN ('OFFICIAL_GOV', 'OFFICIAL_OPERATOR', 'COMMUNITY_OSM', 'UNVERIFIED')
             ),
@@ -65,12 +106,66 @@ def init_db(db_path: Optional[str] = None) -> None:
         );
         """)
 
+        # Safely migrate existing databases if new columns are missing
+        cursor.execute("PRAGMA table_info(places);")
+        existing_cols = {row[1] for row in cursor.fetchall()}
+        new_columns = [
+            ("alternate_names", "TEXT"),
+            ("official_address", "TEXT"),
+            ("municipality", "TEXT"),
+            ("prefecture", "TEXT DEFAULT 'Yamanashi'"),
+            ("description", "TEXT"),
+            ("short_description", "TEXT"),
+            ("elevation_m", "INTEGER"),
+            ("region_id", "TEXT"),
+            ("discovery_type", "TEXT DEFAULT 'FAMOUS'"),
+            ("popularity_classification", "TEXT"),
+            ("seasonal_tags", "TEXT"),
+            ("interests", "TEXT"),
+            ("recommended_for", "TEXT"),
+            ("seasonal_closure", "TEXT"),
+            ("best_visit_months", "TEXT"),
+            ("fee_last_verified", "TEXT"),
+            ("wheelchair_suitability", "TEXT"),
+            ("image_url", "TEXT"),
+            ("image_source_url", "TEXT"),
+            ("image_attribution", "TEXT"),
+            ("image_license", "TEXT"),
+            ("image_alt_text", "TEXT"),
+            ("image_verified_at", "TEXT"),
+            ("photo_search_url", "TEXT"),
+            ("nearest_bus_stops", "TEXT"),
+            ("nearest_railway_stations", "TEXT"),
+            ("gtfs_stop_ids", "TEXT"),
+            ("transport_operators", "TEXT"),
+            ("transit_access_status", "TEXT DEFAULT 'VERIFIED_TRANSIT'"),
+            ("walking_distance_to_nearest_stop", "TEXT"),
+            ("estimated_visit_duration_minutes", "INTEGER DEFAULT 60"),
+            ("best_time_to_visit", "TEXT"),
+            ("family_friendly", "BOOLEAN DEFAULT 1"),
+            ("elderly_friendly", "BOOLEAN DEFAULT 1"),
+            ("facilities_available", "TEXT"),
+            ("expected_crowd_profile", "TEXT"),
+            ("weekday_crowd_profile", "TEXT"),
+            ("weekend_crowd_profile", "TEXT"),
+            ("seasonal_crowd_profile", "TEXT"),
+            ("crowd_prediction_method", "TEXT DEFAULT 'CALIBRATED_HEURISTIC'"),
+            ("crowd_confidence", "INTEGER DEFAULT 90"),
+        ]
+        for col_name, col_def in new_columns:
+            if col_name not in existing_cols:
+                cursor.execute(f"ALTER TABLE places ADD COLUMN {col_name} {col_def};")
+
         # Indexes for fast spatial and attribute filtering
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_spatial ON places (latitude, longitude);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_category ON places (primary_category);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_indoor ON places (indoor_alternative);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_access ON places (accessibility_status);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_status ON places (opening_status);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_discovery_type ON places (discovery_type);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_region ON places (region_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_fuji_view ON places (fuji_view_rating);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_places_name_en ON places (name_en);")
 
         # Persistent Conversations and Messages Schema (Phase 5)
         cursor.execute("""

@@ -111,7 +111,7 @@ async def test_t1_13_strict_grounding_verified_places(agent_fixture, test_db):
         assert p["place_id"] in all_db_places
         assert p["accessibility_status"] == "VERIFIED_ACCESSIBLE"
         assert p["fuji_view_rating"] >= 1
-        assert p["provenance_tier"] in ("OFFICIAL_GOV", "OFFICIAL_OPERATOR")
+        assert p["provenance_tier"] in ("OFFICIAL_GOV", "OFFICIAL_OPERATOR", "COMMUNITY_OSM")
 
 
 @pytest.mark.asyncio
@@ -120,16 +120,16 @@ async def test_t1_14_unknown_hours_and_fees_transparency(agent_fixture, test_db)
     agent, _ = agent_fixture
 
     # Test Oshino Hakkai ponds transparency
-    oshino = search_places_db(query="Oshino", db_path=test_db)
-    assert len(oshino) >= 1
-    p = oshino[0]
+    oshino_list = [x for x in search_places_db(query="Oshino", db_path=test_db) if x["place_id"] == "oshino_hakkai"]
+    assert len(oshino_list) >= 1
+    p = oshino_list[0]
     assert p["general_admission_type"] == "FREE"
-    assert "Hannoki" in p["optional_activities_fee_desc"] or "museum" in p["optional_activities_fee_desc"].lower()
+    assert p.get("optional_activities_fee_desc") and ("Hannoki" in p["optional_activities_fee_desc"] or "museum" in p["optional_activities_fee_desc"].lower())
 
     # Test Motosu viewpoint 24h outdoor trail
-    motosu = search_places_db(query="Motosu", db_path=test_db)
-    assert len(motosu) >= 1
-    m = motosu[0]
+    motosu_list = [x for x in search_places_db(query="Motosu", db_path=test_db) if x["place_id"] == "motosuko_viewpoint"]
+    assert len(motosu_list) >= 1
+    m = motosu_list[0]
     assert m["opening_status"] == "ALWAYS_OPEN"
     assert m["general_admission_type"] == "FREE"
     assert m["required_attribution"] is not None

@@ -31,6 +31,16 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place }) => {
 
         {/* Category & Status Badges */}
         <div className="flex flex-wrap items-center gap-1.5 mt-2.5 text-xs">
+          {place.discovery_type === 'HIDDEN_GEM' && (
+            <span className="px-2 py-0.5 rounded-md bg-emerald-100/80 text-emerald-800 border border-emerald-300 font-bold">
+              Hidden Gem
+            </span>
+          )}
+          {place.discovery_type === 'FAMOUS' && (
+            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold">
+              Famous
+            </span>
+          )}
           <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 capitalize font-medium">
             {place.primary_category}
           </span>

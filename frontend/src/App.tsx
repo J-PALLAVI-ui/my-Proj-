@@ -20,6 +20,11 @@ const MainAppContent: React.FC = () => {
     );
   });
   const [health, setHealth] = useState<{ status: string; primary_model: string } | null>(null);
+  const [placesStats, setPlacesStats] = useState<{ total_destinations: number; famous_destinations: number; hidden_gems: number }>({
+    total_destinations: 237,
+    famous_destinations: 136,
+    hidden_gems: 101,
+  });
   const [externalPrompt, setExternalPrompt] = useState<string | undefined>(undefined);
 
   // Sync active session
@@ -27,7 +32,7 @@ const MainAppContent: React.FC = () => {
     localStorage.setItem('fujinova_active_session', sessionId);
   }, [sessionId]);
 
-  // System Health Check
+  // System Health & Catalogue Stats Check
   useEffect(() => {
     const checkHealth = async () => {
       try {
@@ -43,7 +48,25 @@ const MainAppContent: React.FC = () => {
         setHealth({ status: 'offline', primary_model: 'gemini-3.8-flash' });
       }
     };
+
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(apiUrl('/api/v1/places/stats'));
+        if (res.ok) {
+          const stats = await res.json();
+          if (stats.total_destinations) {
+            setPlacesStats({
+              total_destinations: stats.total_destinations,
+              famous_destinations: stats.famous_destinations,
+              hidden_gems: stats.hidden_gems,
+            });
+          }
+        }
+      } catch (_) {}
+    };
+
     checkHealth();
+    fetchStats();
   }, []);
 
   const handleAskHana = (prompt: string) => {
@@ -83,7 +106,7 @@ const MainAppContent: React.FC = () => {
                     </span>
                   </h1>
                   <p className="text-xs text-[#718198] mt-1">
-                    Real Three.js 3D simulation with authentic Mount Fuji elevation model, lake bathymetry, 35 verified landmarks, and Fujikyu Railway transit nodes.
+                    Real Three.js 3D simulation with authentic Mount Fuji elevation model, lake bathymetry, {placesStats.total_destinations} verified landmarks ({placesStats.famous_destinations} famous • {placesStats.hidden_gems} hidden gems), and Fujikyu Railway transit nodes.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -134,7 +157,7 @@ const MainAppContent: React.FC = () => {
               <div className="bg-white p-6 rounded-2xl border border-[#E1EAF1] shadow-xs">
                 <h1 className="text-xl font-bold text-[#14283F]">Places Catalogue</h1>
                 <p className="text-xs text-[#718198] mt-1">
-                  Explore all 35 verified destinations, temples, viewpoints, and hot springs across
+                  Explore all {placesStats.total_destinations} verified destinations ({placesStats.famous_destinations} famous attractions and {placesStats.hidden_gems} serene hidden gems) across
                   Yamanashi and Mount Fuji.
                 </p>
               </div>
@@ -151,7 +174,7 @@ const MainAppContent: React.FC = () => {
               activeModel={health?.primary_model || 'gemini-3.8-flash'}
               externalPrompt={externalPrompt}
               onClearExternalPrompt={() => setExternalPrompt(undefined)}
-              groundedPlacesCount={35}
+              groundedPlacesCount={placesStats.total_destinations}
             />
           </aside>
         )}

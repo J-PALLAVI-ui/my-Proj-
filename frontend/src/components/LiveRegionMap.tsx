@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CrowdLevel } from '../types';
 import { useTrip } from '../context/TripContext';
+import { apiUrl } from '../config';
 import { 
   Star, 
   Clock, 
@@ -22,8 +23,8 @@ interface MapLocation {
   name_ja: string;
   x: number; // SVG percentage 0-100
   y: number; // SVG percentage 0-100
-  category: 'viewpoint' | 'cultural' | 'nature' | 'transit';
-  lake: 'kawaguchiko' | 'yamanakako' | 'saiko' | 'shojiko' | 'motosuko' | 'other';
+  category: 'viewpoint' | 'cultural' | 'nature' | 'transit' | string;
+  lake: 'kawaguchiko' | 'yamanakako' | 'saiko' | 'shojiko' | 'motosuko' | 'other' | string;
   fuji_rating: number;
   crowd_level: CrowdLevel;
   admission: string;
@@ -31,6 +32,15 @@ interface MapLocation {
   description: string;
   image_url: string;
   wheelchair: boolean;
+  discovery_type?: 'FAMOUS' | 'HIDDEN_GEM' | string;
+}
+
+function latLonToSvg(lat: number, lon: number): { x: number; y: number } {
+  // Lon: 138.53 (West) -> 6%, 138.94 (East) -> 92%
+  const x = Math.min(94, Math.max(6, 6 + ((lon - 138.53) / (138.94 - 138.53)) * 86));
+  // Lat: 35.58 (North) -> 16%, 35.34 (South) -> 82%
+  const y = Math.min(90, Math.max(10, 16 + ((35.58 - lat) / (35.58 - 35.34)) * 66));
+  return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
 }
 
 const REGION_LOCATIONS: MapLocation[] = [
@@ -202,19 +212,75 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
   selectedPlaceId: _selectedPlaceId
 }) => {
   const { selectedPlaceId, setSelectedPlace, generateTimePlan, timeBudgetHours, openWalkthrough } = useTrip();
+  const [places, setPlaces] = useState<MapLocation[]>(REGION_LOCATIONS);
   const [activeLocation, setActiveLocation] = useState<MapLocation>(REGION_LOCATIONS[0]);
   const [filterLake, setFilterLake] = useState<string>('all');
+  const [filterDiscovery, setFilterDiscovery] = useState<'all' | 'FAMOUS' | 'HIDDEN_GEM'>('all');
+
+  // Load verified destinations dynamically from backend
+  useEffect(() => {
+    let isMounted = true;
+    const loadMapMarkers = async () => {
+      try {
+        let res = await fetch(apiUrl('/api/v1/places/markers?limit=300'));
+        if (!res.ok) res = await fetch(apiUrl('/api/v1/places?limit=300'));
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          const items: any[] = Array.isArray(data) ? data : data.results || [];
+          if (items.length > 0) {
+            const mapped: MapLocation[] = items.map((p) => {
+              const svgCoord = latLonToSvg(p.latitude, p.longitude);
+              return {
+                id: p.place_id,
+                name_en: p.name_en || p.name_ja,
+                name_ja: p.name_ja,
+                x: svgCoord.x,
+                y: svgCoord.y,
+                category: p.primary_category || 'viewpoint',
+                lake: p.region_id || 'other',
+                fuji_rating: p.fuji_view_rating || 4,
+                crowd_level: p.discovery_type === 'HIDDEN_GEM' ? 'low' : (p.fuji_view_rating >= 5 ? 'high' : 'moderate'),
+                admission: p.general_admission_type === 'FREE' ? 'Free' : 'Paid',
+                hours: p.opening_hours_text || '24 hours',
+                description: p.description || p.accessibility_evidence || `Verified destination in ${p.region_id || 'Mount Fuji area'}.`,
+                image_url: p.image_url || 'https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=600&q=80',
+                wheelchair: p.accessibility_status === 'VERIFIED_ACCESSIBLE',
+                discovery_type: p.discovery_type || 'FAMOUS'
+              };
+            });
+            setPlaces(mapped);
+            if (mapped.length > 0) setActiveLocation(mapped[0]);
+          }
+        }
+      } catch (err) {
+        console.warn('Map markers dynamic fetch notice (using canonical fallbacks):', err);
+      }
+    };
+    loadMapMarkers();
+    return () => { isMounted = false; };
+  }, []);
 
   useEffect(() => {
     if (selectedPlaceId) {
-      const match = REGION_LOCATIONS.find(l => l.id === selectedPlaceId);
+      const match = places.find(l => l.id === selectedPlaceId);
       if (match) setActiveLocation(match);
     }
-  }, [selectedPlaceId]);
+  }, [selectedPlaceId, places]);
 
-  const filtered = filterLake === 'all' 
-    ? REGION_LOCATIONS 
-    : REGION_LOCATIONS.filter(l => l.lake === filterLake || l.lake === 'other');
+  const filtered = places.filter(loc => {
+    // 1. Lake / Region filter
+    const matchesLake = filterLake === 'all' 
+      || loc.lake === filterLake 
+      || (filterLake === 'kawaguchiko' && (loc.lake.includes('kawaguchi') || loc.lake === 'fujikawaguchiko'))
+      || (filterLake === 'yamanakako' && loc.lake.includes('yamanaka'))
+      || (filterLake === 'saiko' && loc.lake.includes('saiko'));
+    
+    // 2. Discovery Type filter (Famous vs Hidden Gem)
+    const matchesDiscovery = filterDiscovery === 'all' 
+      || loc.discovery_type === filterDiscovery;
+
+    return matchesLake && matchesDiscovery;
+  });
 
   const handlePinClick = (loc: MapLocation) => {
     setActiveLocation(loc);
@@ -236,19 +302,55 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
   return (
     <div className="h-full flex flex-col bg-slate-900 text-white overflow-hidden relative select-none">
       {/* Map Control Header */}
-      <div className="p-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between z-10">
+      <div className="p-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 z-10">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center">
             <Compass className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-xs font-bold text-white tracking-wide">Live Region Map & Five Lakes</h2>
+            <h2 className="text-xs font-bold text-white tracking-wide flex items-center gap-2">
+              <span>Live Region Map & Five Lakes</span>
+              <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-400/30 px-1.5 py-0.2 rounded font-mono">
+                {filtered.length} / {places.length} Mapped
+              </span>
+            </h2>
             <p className="text-[10px] text-slate-400">Interactive Spatial Navigator • Mount Fuji (3,776m)</p>
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1 text-[10px]">
+        {/* Discovery & Lake Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+          {/* Discovery Filter */}
+          <div className="flex items-center bg-slate-800/80 p-0.5 rounded-lg border border-slate-700">
+            <button
+              onClick={() => setFilterDiscovery('all')}
+              className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${
+                filterDiscovery === 'all' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              All Types
+            </button>
+            <button
+              onClick={() => setFilterDiscovery('FAMOUS')}
+              className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${
+                filterDiscovery === 'FAMOUS' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Famous
+            </button>
+            <button
+              onClick={() => setFilterDiscovery('HIDDEN_GEM')}
+              className={`px-2 py-0.5 rounded-md font-semibold transition-colors ${
+                filterDiscovery === 'HIDDEN_GEM' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Hidden Gems
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-slate-700" />
+
+          {/* Lake Filters */}
           <button
             onClick={() => setFilterLake('all')}
             className={`px-2 py-1 rounded-md font-medium transition-colors ${
@@ -492,9 +594,20 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
                       {activeLocation.name_ja} • {activeLocation.lake.toUpperCase()}
                     </p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getCrowdBadge(activeLocation.crowd_level).bg}`}>
-                    {getCrowdBadge(activeLocation.crowd_level).label}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {activeLocation.discovery_type === 'HIDDEN_GEM' ? (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-emerald-950/80 text-emerald-300 border-emerald-500/40">
+                        Hidden Gem
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-sky-950/80 text-sky-300 border-sky-500/40">
+                        Famous
+                      </span>
+                    )}
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getCrowdBadge(activeLocation.crowd_level).bg}`}>
+                      {getCrowdBadge(activeLocation.crowd_level).label}
+                    </span>
+                  </div>
                 </div>
 
                 <p className="text-[11px] text-slate-300 mt-1 line-clamp-2 leading-relaxed">

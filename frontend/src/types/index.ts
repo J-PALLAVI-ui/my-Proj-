@@ -20,6 +20,10 @@ export interface Place {
   accessibility_source: string;
   fuji_view_rating: number;
   indoor_alternative: boolean;
+  discovery_type?: 'FAMOUS' | 'HIDDEN_GEM' | string;
+  image_url?: string;
+  region_id?: string;
+  description?: string;
   provenance_tier: 'OFFICIAL_GOV' | 'OFFICIAL_OPERATOR' | 'COMMUNITY_OSM' | 'UNVERIFIED';
   source_url: string;
   required_attribution: string;
