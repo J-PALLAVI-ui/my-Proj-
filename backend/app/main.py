@@ -47,12 +47,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration: Support Render production static sites and preserve localhost
+# CORS Configuration: Support Netlify production & preview domains, and preserve localhost
 default_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://my-proj-eprz.netlify.app",
+    "https://agent-6b080547420fc4e73afd124a--my-proj-eprz.netlify.app",
 ]
 
 cors_env = os.getenv("CORS_ALLOWED_ORIGINS", settings.CORS_ALLOWED_ORIGINS)

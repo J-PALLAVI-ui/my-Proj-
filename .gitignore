@@ -7,6 +7,9 @@
 .env.local
 .env.*.local
 *.env
+!.env.example
+!frontend/.env.example
+!frontend/.env.production
 
 # Python Virtual Environments & Bytecode
 __pycache__/
