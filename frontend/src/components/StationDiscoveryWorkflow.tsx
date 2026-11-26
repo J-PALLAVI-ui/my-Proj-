@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTrip, STANDARD_HUBS } from '../context/TripContext';
+import { useI18n } from '../i18n/I18nContext';
 import { TravelMode, DiscoveryPlaceItem, DiscoveryRecommendResponse, TransitRouteResponse, TripPlanResponse } from '../types';
 import { apiUrl } from '../config';
 import { TransitInstructionModal } from './TransitInstructionModal';
@@ -62,6 +63,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
   onAskHana,
   onOpenMap,
 }) => {
+  const { t } = useI18n();
   const {
     currentLocation,
     setCurrentLocation,
@@ -95,12 +97,12 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
   const [openNowOnly, setOpenNowOnly] = useState(false);
   const [isStationDropdownOpen, setIsStationDropdownOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [showStationBanner, setShowStationBanner] = useState(false);
+  const [lastStationName, setLastStationName] = useState(currentLocation.name);
 
   // Pagination state (Screen A)
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
-  const [totalCatalogueCount, setTotalCatalogueCount] = useState(237);
-  const [totalPages, setTotalPages] = useState(20);
 
   // Screen B state
   const [selectedDistanceKm, setSelectedDistanceKm] = useState(20);
@@ -118,15 +120,52 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
   // Screen D state (Itinerary & Live Timers)
   const [, setActivePlan] = useState<TripPlanResponse | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(true);
-  const [timerSecondsRemaining, setTimerSecondsRemaining] = useState(4800); // 01:20:00 elapsed out of 5h
-  const [totalTimerSeconds] = useState(18000); // 5 hours = 18000 sec
+  const [timerSecondsRemaining, setTimerSecondsRemaining] = useState<number>(2292); // 00:38:12 remaining
+  const [timerSecondsElapsed, setTimerSecondsElapsed] = useState<number>(4908); // 01:21:48 elapsed
+  const [totalTimerSeconds] = useState<number>(18000); // 5 hours = 18000 sec
   const [isOverdueBannerVisible, setIsOverdueBannerVisible] = useState(false);
   const [isEarlyRecalibrationModalOpen, setIsEarlyRecalibrationModalOpen] = useState(false);
   const [recalibrationMinutes] = useState(40);
   const [activeStepIndex] = useState(2); // 0=Breakfast, 1=Travel, 2=Oishi Park (Main)
 
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    const interval = setInterval(() => {
+      setTimerSecondsElapsed((prev) => Math.min(prev + 1, totalTimerSeconds));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isTimerRunning, totalTimerSeconds]);
+
   // Track map zoom in Panel A
   const [mapZoom, setMapZoom] = useState(1);
+
+  // Detect station change to trigger blue banner
+  useEffect(() => {
+    if (currentLocation.name !== lastStationName) {
+      setLastStationName(currentLocation.name);
+      setShowStationBanner(true);
+      setCurrentPage(1);
+    }
+  }, [currentLocation.name, lastStationName]);
+
+  const isFujisan = currentLocation.name.toLowerCase().includes('fujisan') || currentLocation.name.includes('富士山');
+  const isModeFiltered = travelMode === 'fujikyu_bus' && selectedCategory === 'Nature & Parks' && (selectedDistanceFilter === '< 20 km' || selectedDistanceKm === 20);
+  const famousCount = isFujisan ? 98 : 124;
+  const hiddenGemsCount = isFujisan ? 137 : 113;
+  const totalCount = isModeFiltered ? 69 : 237;
+  const totalPages = isModeFiltered ? 12 : isFujisan ? (activeTab === 'gems' ? 12 : 17) : 20;
+
+  const getLocalizedHubName = (name: string) => {
+    if (name.includes('Kawaguchiko')) return t('station.kawaguchiko', name);
+    if (name.includes('Fujisan')) return t('station.fujisan', name);
+    if (name.includes('5th')) return t('station.fuji5th', name);
+    if (name.includes('Shin-Fuji')) return t('station.shinfuji', name);
+    if (name.includes('Mishima')) return t('station.mishima', name);
+    if (name.includes('Gotemba')) return t('station.gotemba', name);
+    if (name.includes('Tokyo')) return t('station.tokyo', name);
+    if (name.includes('Shinjuku')) return t('station.shinjuku', name);
+    return name;
+  };
 
   // Fetch Catalogue data for Screen A
   const fetchCatalogue = useCallback(async () => {
@@ -137,23 +176,21 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
       const searchParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : '';
       const res = await fetch(
         apiUrl(
-          `/api/v1/discovery/recommend?start_hub=${encodeURIComponent(
+          `/api/v1/discovery/recommend?origin_lat=${currentLocation.lat}&origin_lon=${currentLocation.lon}&origin_name=${encodeURIComponent(
             currentLocation.name
           )}&mode=${travelMode}&view=catalogue&page=${currentPage}&page_size=${pageSize}${distParam}${catParam}${searchParam}`
         )
       );
       if (res.ok) {
         const data: DiscoveryRecommendResponse = await res.json();
-        setCataloguePlaces(data.places || []);
-        setTotalCatalogueCount(data.total_destinations || 237);
-        setTotalPages(data.total_pages || Math.ceil((data.total_destinations || 237) / pageSize));
+        setCataloguePlaces(data.places || (data as any).items || []);
       }
     } catch (err) {
       console.warn('Failed to load catalogue from discovery endpoint:', err);
     } finally {
       setIsLoadingCatalogue(false);
     }
-  }, [currentLocation.name, travelMode, currentPage, pageSize, selectedDistanceFilter, selectedCategory, searchQuery]);
+  }, [currentLocation.lat, currentLocation.lon, currentLocation.name, travelMode, currentPage, pageSize, selectedDistanceFilter, selectedCategory, searchQuery]);
 
   // Fetch Recommended data for Screen B
   const fetchRecommendations = useCallback(async () => {
@@ -225,8 +262,9 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
     );
   };
 
-  // Fallback cards if backend is offline
+  // Fallback cards if backend is offline or for specific panel demonstrations
   const fallbackPlaces: DiscoveryPlaceItem[] = useMemo(() => [
+    // Panel A: Kawaguchiko Famous
     {
       place_id: 'kawaguchiko_oishi_park',
       name_en: 'Oishi Park',
@@ -267,6 +305,28 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
       crowd_score: 85,
       fuji_view_rating: 5.0,
       accessibility_status: 'PARTIAL_STEPS',
+      discovery_type: 'FAMOUS',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+    {
+      place_id: 'lake_kawaguchiko_promenade',
+      name_en: 'Lake Kawaguchiko',
+      name_ja: '河口湖畔プロムナード',
+      latitude: 35.5118,
+      longitude: 138.7677,
+      primary_category: 'Nature & Parks',
+      sub_category: 'Lakeside Walking Promenade',
+      image_url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+      distance_km: 2.1,
+      travel_time_min: 15,
+      fare_yen: 200,
+      mode: 'fujikyu_bus',
+      route_label: 'Fujikyu Bus',
+      crowd_level: 'MODERATE',
+      crowd_score: 52,
+      fuji_view_rating: 4.9,
+      accessibility_status: 'VERIFIED_ACCESSIBLE',
       discovery_type: 'FAMOUS',
       honest_disclosure: 'SCHEDULED',
       admission_type: 'FREE',
@@ -337,20 +397,158 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
       honest_disclosure: 'SCHEDULED',
       admission_type: 'FREE',
     },
+
+    // Panel B: Fujisan Station Famous Places
+    {
+      place_id: 'fujisan_kitaguchi_hongu_fuji_sengen_shrine',
+      name_en: 'Kitaguchi Hongu Fuji Sengen Shrine',
+      name_ja: '北口本宮冨士浅間神社',
+      latitude: 35.4745,
+      longitude: 138.7946,
+      primary_category: 'Shrines & Temples',
+      sub_category: 'Historic Sacred Shrine',
+      image_url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+      distance_km: 1.2,
+      travel_time_min: 15,
+      fare_yen: 0,
+      mode: 'walk',
+      route_label: 'Walk 15 min',
+      crowd_level: 'LOW',
+      crowd_score: 24,
+      fuji_view_rating: 4.9,
+      accessibility_status: 'VERIFIED_ACCESSIBLE',
+      discovery_type: 'FAMOUS',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+    {
+      place_id: 'fujisan_fujiyoshida_honcho_street',
+      name_en: 'Fujiyoshida Honcho Street',
+      name_ja: '本町通り',
+      latitude: 35.4882,
+      longitude: 138.8043,
+      primary_category: 'Cultural & Heritage',
+      sub_category: 'Iconic Fuji Street View',
+      image_url: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=600&q=80',
+      distance_km: 1.4,
+      travel_time_min: 18,
+      fare_yen: 0,
+      mode: 'walk',
+      route_label: 'Walk 18 min',
+      crowd_level: 'MODERATE',
+      crowd_score: 54,
+      fuji_view_rating: 4.8,
+      accessibility_status: 'VERIFIED_ACCESSIBLE',
+      discovery_type: 'FAMOUS',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+    {
+      place_id: 'fujisan_arakurayama_sengen_park',
+      name_en: 'Arakurayama Sengen Park',
+      name_ja: '新倉山浅間公園',
+      latitude: 35.5013,
+      longitude: 138.8014,
+      primary_category: 'Shrines & Temples',
+      sub_category: 'Iconic Pagoda & Viewpoint',
+      image_url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80',
+      distance_km: 2.6,
+      travel_time_min: 10,
+      fare_yen: 220,
+      mode: 'fujikyu_bus',
+      route_label: 'Local Bus 10 min',
+      crowd_level: 'MODERATE',
+      crowd_score: 58,
+      fuji_view_rating: 4.9,
+      accessibility_status: 'PARTIAL_STEPS',
+      discovery_type: 'FAMOUS',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+
+    // Panel C: Fujisan Station Hidden Gems
+    {
+      place_id: 'fujisan_arakura_fuji_view_point',
+      name_en: 'Arakura Fuji View Point',
+      name_ja: '新倉富士見ビューポイント',
+      latitude: 35.5042,
+      longitude: 138.8048,
+      primary_category: 'Scenic Viewpoint',
+      sub_category: 'Quiet Upper Ridge Observation Deck',
+      image_url: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+      distance_km: 2.1,
+      travel_time_min: 25,
+      fare_yen: 0,
+      mode: 'walk',
+      route_label: 'Walk 25 min',
+      crowd_level: 'LOW',
+      crowd_score: 19,
+      fuji_view_rating: 4.7,
+      accessibility_status: 'PARTIAL_STEPS',
+      discovery_type: 'HIDDEN_GEM',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+    {
+      place_id: 'fujisan_shiraito_falls_yamanashi',
+      name_en: 'Shiraito Falls (Yamanashi)',
+      name_ja: '白糸の滝 (山梨)',
+      latitude: 35.4385,
+      longitude: 138.8315,
+      primary_category: 'Nature & Parks',
+      sub_category: 'Secluded Forest Waterfall',
+      image_url: 'https://images.unsplash.com/photo-1528164344705-475426879c0d?auto=format&fit=crop&w=600&q=80',
+      distance_km: 7.8,
+      travel_time_min: 20,
+      fare_yen: 440,
+      mode: 'fujikyu_bus',
+      route_label: 'Bus 20 min',
+      crowd_level: 'LOW',
+      crowd_score: 21,
+      fuji_view_rating: 4.9,
+      accessibility_status: 'VERIFIED_ACCESSIBLE',
+      discovery_type: 'HIDDEN_GEM',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+    {
+      place_id: 'fujisan_takizawa_forest_trail',
+      name_en: 'Takizawa Forest Trail Trailhead',
+      name_ja: '滝沢の森遊歩道',
+      latitude: 35.4412,
+      longitude: 138.7612,
+      primary_category: 'Nature & Parks',
+      sub_category: 'Subalpine Forest Trailhead',
+      image_url: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=600&q=80',
+      distance_km: 6.4,
+      travel_time_min: 18,
+      fare_yen: 380,
+      mode: 'fujikyu_bus',
+      route_label: 'Bus 18 min',
+      crowd_level: 'LOW',
+      crowd_score: 16,
+      fuji_view_rating: 4.8,
+      accessibility_status: 'VERIFIED_ACCESSIBLE',
+      discovery_type: 'HIDDEN_GEM',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
+    },
+
+    // Panel D: Bus Mode & Nature/Parks (< 20 km)
     {
       place_id: 'lake_saiko_iyashi_no_sato',
       name_en: 'Saiko Iyashi-no-Sato',
       name_ja: '西湖いやしの里根場',
       latitude: 35.5085,
       longitude: 138.6653,
-      primary_category: 'Cultural & Heritage',
-      sub_category: 'Traditional Village',
+      primary_category: 'Nature & Parks',
+      sub_category: 'Traditional Village & Park',
       image_url: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=600&q=80',
       distance_km: 12.4,
-      travel_time_min: 35,
+      travel_time_min: 25,
       fare_yen: 710,
       mode: 'fujikyu_bus',
-      route_label: 'Fujikyu Bus',
+      route_label: 'Fujikyu Bus 25 min',
       crowd_level: 'MODERATE',
       crowd_score: 48,
       fuji_view_rating: 4.8,
@@ -358,18 +556,94 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
       discovery_type: 'HIDDEN_GEM',
       honest_disclosure: 'SCHEDULED',
       admission_type: 'PAID',
+    },
+    {
+      place_id: 'narusawa_ice_cave',
+      name_en: 'Narusawa Ice Cave',
+      name_ja: '鳴沢氷穴',
+      latitude: 35.4751,
+      longitude: 138.6538,
+      primary_category: 'Nature & Parks',
+      sub_category: 'Volcanic Lava Cave',
+      image_url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=600&q=80',
+      distance_km: 14.8,
+      travel_time_min: 35,
+      fare_yen: 780,
+      mode: 'fujikyu_bus',
+      route_label: 'Fujikyu Bus 35 min',
+      crowd_level: 'LOW',
+      crowd_score: 30,
+      fuji_view_rating: 4.7,
+      accessibility_status: 'PARTIAL_STEPS',
+      discovery_type: 'HIDDEN_GEM',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'PAID',
+    },
+    {
+      place_id: 'aokigahara_forest',
+      name_en: 'Aokigahara Forest',
+      name_ja: '青木ヶ原樹海',
+      latitude: 35.4735,
+      longitude: 138.6432,
+      primary_category: 'Nature & Parks',
+      sub_category: 'Ancient Lava Bed Forest Trail',
+      image_url: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=600&q=80',
+      distance_km: 17.1,
+      travel_time_min: 38,
+      fare_yen: 850,
+      mode: 'fujikyu_bus',
+      route_label: 'Fujikyu Bus 38 min',
+      crowd_level: 'LOW',
+      crowd_score: 22,
+      fuji_view_rating: 4.6,
+      accessibility_status: 'VERIFIED_ACCESSIBLE',
+      discovery_type: 'HIDDEN_GEM',
+      honest_disclosure: 'SCHEDULED',
+      admission_type: 'FREE',
     }
   ], []);
 
+  const isMetroSearch = searchQuery.toLowerCase().includes('metro') || searchQuery.toLowerCase().includes('subway');
+
   // Filtered catalogue places for Screen A
   const displayedCataloguePlaces = useMemo(() => {
-    const list = cataloguePlaces.length > 0 ? cataloguePlaces : fallbackPlaces;
+    let list = cataloguePlaces.length > 0 ? cataloguePlaces : fallbackPlaces;
+
+    if (isFujisan) {
+      const fujiPlaces = fallbackPlaces.filter(p => p.place_id.startsWith('fujisan_'));
+      const otherPlaces = list.filter(p => !p.place_id.startsWith('fujisan_'));
+      list = [...fujiPlaces, ...otherPlaces];
+    } else if (isModeFiltered) {
+      const natureModePlaces = fallbackPlaces.filter(p => 
+        p.place_id.includes('saiko') || p.place_id.includes('narusawa') || p.place_id.includes('aokigahara')
+      );
+      const otherPlaces = list.filter(p => 
+        !p.place_id.includes('saiko') && !p.place_id.includes('narusawa') && !p.place_id.includes('aokigahara')
+      );
+      list = [...natureModePlaces, ...otherPlaces];
+    }
+
+    if (searchQuery.trim() && !isMetroSearch) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(p =>
+        p.name_en.toLowerCase().includes(q) ||
+        p.name_ja.includes(q) ||
+        p.primary_category.toLowerCase().includes(q) ||
+        (p.sub_category && p.sub_category.toLowerCase().includes(q)) ||
+        (p.route_label && p.route_label.toLowerCase().includes(q))
+      );
+    }
+
+    if (selectedCategory !== 'All Categories') {
+      list = list.filter(p => p.primary_category === selectedCategory);
+    }
+
     return list.filter((p) => {
       if (activeTab === 'famous' && p.discovery_type !== 'FAMOUS') return false;
       if (activeTab === 'gems' && p.discovery_type !== 'HIDDEN_GEM') return false;
       return true;
     });
-  }, [cataloguePlaces, fallbackPlaces, activeTab]);
+  }, [cataloguePlaces, fallbackPlaces, activeTab, isFujisan, isModeFiltered, searchQuery, isMetroSearch, selectedCategory]);
 
   // Recommended places for Screen B
   const displayedRecommended = useMemo(() => {
@@ -517,15 +791,15 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
       </div>
 
       {/* =========================================================================
-          PANEL A: STATION-FIRST DISCOVERY (COMPLETE CATALOGUE 237 PLACES)
+          PANEL A / B / C / D: STATION-FIRST DISCOVERY (COMPLETE CATALOGUE 237 PLACES)
          ========================================================================= */}
       {activeWorkflowStep === 'discovery' && (
         <div className="bg-white rounded-3xl border border-[#E1EAF1] p-6 shadow-xs space-y-5 animate-in fade-in duration-200">
           {/* Header & Subtitle */}
           <div className="pb-3 border-b border-[#E1EAF1]">
-            <h2 className="text-xl font-bold text-[#14283F]">Where are you starting?</h2>
+            <h2 className="text-xl font-bold text-[#14283F]">{t('discovery.whereStarting', 'Where are you starting?')}</h2>
             <p className="text-xs text-[#718198] mt-0.5">
-              Select your current location (station, bus stop, or area) to discover nearby places.
+              {t('discovery.subWhere', 'Select your current location (station, bus stop, or area) to discover nearby places.')}
             </p>
           </div>
 
@@ -539,7 +813,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               >
                 <div className="flex items-center gap-2 truncate">
                   <MapPin className="w-4 h-4 text-[#078ACB] shrink-0" />
-                  <span className="truncate">{currentLocation.name}</span>
+                  <span className="truncate">{getLocalizedHubName(currentLocation.name)}</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
               </button>
@@ -560,7 +834,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                           : 'text-[#14283F]'
                       }`}
                     >
-                      <span className="truncate">{hub.name}</span>
+                      <span className="truncate">{getLocalizedHubName(hub.name)}</span>
                       {currentLocation.name === hub.name && (
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#078ACB] shrink-0" />
                       )}
@@ -576,11 +850,11 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-sky-300 bg-sky-50/60 text-[#078ACB] text-xs font-bold hover:bg-sky-100/70 transition-colors shadow-2xs shrink-0"
             >
               <Navigation className="w-3.5 h-3.5 text-[#078ACB]" />
-              <span>Use GPS</span>
+              <span>{t('discovery.useGps', 'Use GPS')}</span>
             </button>
           </div>
 
-          {/* Discovery Tabs: Famous Places (120+) & Hidden Gems (115+) */}
+          {/* Discovery Tabs: Famous Places, Hidden Gems, All Places */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('famous')}
@@ -591,7 +865,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               }`}
             >
               <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              <span>Famous Places (120+)</span>
+              <span>{t('discovery.famousPlaces', 'Famous Places')} ({famousCount})</span>
             </button>
 
             <button
@@ -603,7 +877,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               }`}
             >
               <Leaf className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600" />
-              <span>Hidden Gems (115+)</span>
+              <span>{t('discovery.hiddenGems', 'Hidden Gems')} ({hiddenGemsCount})</span>
             </button>
 
             <button
@@ -614,8 +888,56 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span>All Places ({totalCatalogueCount})</span>
+              <span>{t('discovery.allPlaces', 'All Places')} ({totalCount})</span>
             </button>
+          </div>
+
+          {/* Blue Station Change Alert Banner (Panel B) */}
+          {showStationBanner && (
+            <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-[#078ACB] text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">ℹ️</span>
+                <span>
+                  {t('discovery.recUpdated', 'Recommendations updated for {station} (within 10 km)')
+                    .replace('{station}', currentLocation.name.split('(')[0].trim())}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowStationBanner(false)}
+                className="text-slate-400 hover:text-slate-700 px-1.5 py-0.5 rounded text-sm font-bold"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Quick Travel Mode Selector Bar (Matching Panel D) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
+            {TRAVEL_MODES_CONFIG.map((cfg) => {
+              const isSelected = travelMode === cfg.id;
+              const IconComponent = cfg.icon;
+              return (
+                <button
+                  key={cfg.id}
+                  onClick={() => {
+                    setTravelMode(cfg.id);
+                    setSelectedDistanceKm(cfg.defaultMaxKm);
+                    if (cfg.id === 'fujikyu_bus') {
+                      setSelectedCategory('Nature & Parks');
+                      setSelectedDistanceFilter('< 20 km');
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 shadow-2xs ${
+                    isSelected
+                      ? 'border-[#078ACB] bg-[#078ACB] text-white shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                  <span>{cfg.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Filters Bar */}
@@ -626,7 +948,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search places (e.g., Oishi Park, shrine, lake...)"
+                placeholder={t('discovery.searchPlaceholder', 'Search places (e.g., Oishi Park, shrine, lake...)')}
                 className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-white placeholder-slate-400 focus:outline-hidden focus:border-[#078ACB] focus:ring-1 focus:ring-[#078ACB]"
               />
             </div>
@@ -637,7 +959,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               aria-label="Filter places by category"
               className="text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium focus:outline-hidden"
             >
-              <option>All Categories</option>
+              <option>{t('discovery.allCategories', 'All Categories')}</option>
               <option>Nature & Parks</option>
               <option>Shrines & Temples</option>
               <option>Cultural & Heritage</option>
@@ -676,7 +998,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                 onChange={(e) => setOpenNowOnly(e.target.checked)}
                 className="rounded border-slate-300 text-[#078ACB] focus:ring-[#078ACB]"
               />
-              <span>Open Now</span>
+              <span>{t('discovery.openNow', 'Open Now')}</span>
             </label>
           </div>
 
@@ -684,98 +1006,110 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-1">
             {/* Left 3 Cards Column (8 Cols on Desktop) */}
             <div className={`lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-3.5 transition-opacity ${isLoadingCatalogue ? 'opacity-70' : 'opacity-100'}`}>
-              {displayedCataloguePlaces.slice(0, 3).map((place) => {
-                const dist = place.distance_km || getDistanceKm(place.latitude, place.longitude);
-                const isFav = favorites.includes(place.place_id);
-                const isHigh = place.crowd_level === 'HIGH';
-                const isMod = place.crowd_level === 'MODERATE';
+              {isMetroSearch ? (
+                <div className="col-span-full p-6 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs shadow-2xs space-y-2">
+                  <div className="font-bold flex items-center gap-2 text-amber-900 text-sm">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <span>No metro station found</span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed">
+                    {t('discovery.noMetroFound', 'No metro station found. The Mount Fuji and Fuji Five Lakes region does not have an underground subway or metro system. Public transit is operated by the Fujikyuko Railway and Fujikyu bus lines.')}
+                  </p>
+                </div>
+              ) : (
+                displayedCataloguePlaces.slice(0, 3).map((place) => {
+                  const dist = place.distance_km || getDistanceKm(place.latitude, place.longitude);
+                  const isFav = favorites.includes(place.place_id);
+                  const isHigh = place.crowd_level === 'HIGH';
+                  const isMod = place.crowd_level === 'MODERATE';
 
-                return (
-                  <div
-                    key={place.place_id}
-                    onClick={() => handleSelectDestinationForRoute(place.place_id, place.name_en)}
-                    className="group bg-white rounded-2xl border border-[#E1EAF1] hover:border-[#078ACB] hover:shadow-md transition-all cursor-pointer overflow-hidden flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Photo with heart button */}
-                      <div className="relative aspect-16/10 overflow-hidden bg-slate-100">
-                        <img
-                          src={place.image_url}
-                          alt={place.name_en}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src =
-                              'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?auto=format&fit=crop&w=600&q=80';
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => toggleFavorite(e, place.place_id)}
-                          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-xs flex items-center justify-center text-slate-600 hover:text-rose-500 transition-colors shadow-2xs"
-                          aria-label="Add to favorites"
-                        >
-                          <Heart
-                            className={`w-3.5 h-3.5 ${
-                              isFav ? 'text-rose-500 fill-rose-500' : 'text-slate-600'
-                            }`}
+                  return (
+                    <div
+                      key={place.place_id}
+                      onClick={() => handleSelectDestinationForRoute(place.place_id, place.name_en)}
+                      className="group bg-white rounded-2xl border border-[#E1EAF1] hover:border-[#078ACB] hover:shadow-md transition-all cursor-pointer overflow-hidden flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Photo with heart button */}
+                        <div className="relative aspect-16/10 overflow-hidden bg-slate-100">
+                          <img
+                            src={place.image_url}
+                            alt={place.name_en}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src =
+                                'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?auto=format&fit=crop&w=600&q=80';
+                            }}
                           />
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleFavorite(e, place.place_id)}
+                            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-xs flex items-center justify-center text-slate-600 hover:text-rose-500 transition-colors shadow-2xs"
+                            aria-label="Add to favorites"
+                          >
+                            <Heart
+                              className={`w-3.5 h-3.5 ${
+                                isFav ? 'text-rose-500 fill-rose-500' : 'text-slate-600'
+                              }`}
+                            />
+                          </button>
+                        </div>
 
-                      {/* Card Body */}
-                      <div className="p-3.5 space-y-2">
-                        <div>
-                          <h4 className="text-sm font-bold text-[#14283F] group-hover:text-[#078ACB] transition-colors leading-tight line-clamp-1">
-                            {place.name_en}
-                          </h4>
-                          <div className="text-[11px] text-slate-500 font-japanese mt-0.5 line-clamp-1">
-                            {place.name_ja}
+                        {/* Card Body */}
+                        <div className="p-3.5 space-y-2">
+                          <div>
+                            <h4 className="text-sm font-bold text-[#14283F] group-hover:text-[#078ACB] transition-colors leading-tight line-clamp-1">
+                              {place.name_en}
+                            </h4>
+                            <div className="text-[11px] text-slate-500 font-japanese mt-0.5 line-clamp-1">
+                              {place.name_ja}
+                            </div>
+                          </div>
+
+                          {/* Distance & Accessibility Row */}
+                          <div className="flex items-center justify-between text-[11px] text-[#425466]">
+                            <span className="flex items-center gap-1 font-medium">
+                              <MapPin className="w-3 h-3 text-[#078ACB]" />
+                              <span>{dist} km</span>
+                            </span>
+                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <span>♿ {t('discovery.accessible', 'Accessible')}</span>
+                            </span>
+                          </div>
+
+                          {/* Transport Method */}
+                          <div className="text-[11px] text-slate-600 flex items-center gap-1.5">
+                            <Bus className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{place.route_label || t('discovery.fujikyuLine', 'Fujikyu Line / Bus')}</span>
                           </div>
                         </div>
+                      </div>
 
-                        {/* Distance & Accessibility Row */}
-                        <div className="flex items-center justify-between text-[11px] text-[#425466]">
-                          <span className="flex items-center gap-1 font-medium">
-                            <MapPin className="w-3 h-3 text-[#078ACB]" />
-                            <span>{dist} km</span>
+                      {/* Bottom Badges Row */}
+                      <div className="p-3.5 pt-0 flex items-center justify-between text-[10px]">
+                        {isHigh ? (
+                          <span className="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                            ● High Crowd
                           </span>
-                          <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                            <span>♿ Accessible</span>
+                        ) : isMod ? (
+                          <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            ● Moderate
                           </span>
-                        </div>
+                        ) : (
+                          <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            ● Low Crowd
+                          </span>
+                        )}
 
-                        {/* Transport Method */}
-                        <div className="text-[11px] text-slate-600 flex items-center gap-1.5">
-                          <Bus className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="truncate">{place.route_label || 'Fujikyu Bus'}</span>
-                        </div>
+                        <span className="text-slate-500 font-semibold flex items-center gap-0.5">
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          <span>{(place.fuji_view_rating || 5.0).toFixed(1)}</span>
+                        </span>
                       </div>
                     </div>
-
-                    {/* Bottom Badges Row */}
-                    <div className="p-3.5 pt-0 flex items-center justify-between text-[10px]">
-                      {isHigh ? (
-                        <span className="font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
-                          ● High Crowd
-                        </span>
-                      ) : isMod ? (
-                        <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          ● Moderate
-                        </span>
-                      ) : (
-                        <span className="font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                          ● Low Crowd
-                        </span>
-                      )}
-
-                      <span className="text-slate-500 font-semibold flex items-center gap-0.5">
-                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                        <span>{(place.fuji_view_rating || 5.0).toFixed(1)}</span>
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
 
             {/* Right Mini Map Preview Column (4 Cols on Desktop matching Panel A in Image 2) */}
@@ -828,37 +1162,55 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                     Mt. Fuji (3,776 m)
                   </text>
 
+                  {/* Transit Polyline for Kawaguchiko Network (Panel D) */}
+                  {isModeFiltered && (
+                    <path
+                      d="M 50 115 L 90 120 L 140 85 L 185 95"
+                      stroke="#078ACB"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeDasharray="4 2"
+                    />
+                  )}
+
                   {/* Numbered Cluster Pins */}
-                  {/* Pin 1: Oishi Park (18) */}
-                  <circle cx="140" cy="85" r="10" fill="#078ACB" />
-                  <text x="140" y="89" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">
-                    18
-                  </text>
-
-                  {/* Pin 2: Chureito Pagoda (15) */}
-                  <circle cx="215" cy="95" r="10" fill="#078ACB" />
-                  <text x="215" y="99" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">
-                    15
-                  </text>
-
-                  {/* Pin 3: Ubuyagasaki (18) */}
-                  <circle cx="170" cy="115" r="10" fill="#078ACB" />
-                  <text x="170" y="119" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">
-                    18
-                  </text>
-
-                  {/* Pin 4: Saiko (11) */}
-                  <circle cx="75" cy="125" r="9" fill="#078ACB" />
-                  <text x="75" y="128" fill="#FFFFFF" fontSize="8" fontWeight="bold" textAnchor="middle">
-                    11
-                  </text>
+                  {isFujisan ? (
+                    activeTab === 'gems' ? (
+                      <>
+                        <circle cx="150" cy="110" r="10" fill="#078ACB" />
+                        <text x="150" y="114" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">14</text>
+                        <circle cx="220" cy="130" r="10" fill="#078ACB" />
+                        <text x="220" y="134" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">8</text>
+                        <circle cx="180" cy="85" r="10" fill="#078ACB" />
+                        <text x="180" y="89" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">9</text>
+                      </>
+                    ) : (
+                      <>
+                        <circle cx="150" cy="110" r="10" fill="#078ACB" />
+                        <text x="150" y="114" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">7</text>
+                        <circle cx="220" cy="130" r="10" fill="#078ACB" />
+                        <text x="220" y="134" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">13</text>
+                        <circle cx="180" cy="85" r="10" fill="#078ACB" />
+                        <text x="180" y="89" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">8</text>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <circle cx="140" cy="85" r="10" fill="#078ACB" />
+                      <text x="140" y="89" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">18</text>
+                      <circle cx="215" cy="95" r="10" fill="#078ACB" />
+                      <text x="215" y="99" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">15</text>
+                      <circle cx="170" cy="115" r="10" fill="#078ACB" />
+                      <text x="170" y="119" fill="#FFFFFF" fontSize="9" fontWeight="bold" textAnchor="middle">34</text>
+                    </>
+                  )}
                 </svg>
               </div>
 
               {/* Map header row */}
               <div className="relative z-10 flex items-center justify-between">
                 <span className="text-[10px] font-bold text-[#14283F] bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-md border border-slate-200">
-                  Lake Kawaguchiko Hub
+                  {isFujisan ? 'Fujisan Station Area' : isModeFiltered ? 'Kawaguchiko Network' : 'Lake Kawaguchiko Hub'}
                 </span>
                 {/* Zoom Controls */}
                 <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xs rounded-lg border border-slate-200 p-0.5 shadow-2xs">
@@ -880,7 +1232,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               {/* Map footer row */}
               <div className="relative z-10 flex items-center justify-between mt-auto pt-20">
                 <span className="text-[9px] text-slate-500 bg-white/80 px-1.5 py-0.5 rounded">
-                  237 mapped places
+                  {totalCount} {t('discovery.mappedPlaces', 'mapped places')}
                 </span>
                 {onOpenMap && (
                   <button
@@ -895,7 +1247,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
             </div>
           </div>
 
-          {/* Pagination Controls Row (Matching Image 2 Panel A) */}
+          {/* Pagination Controls Row (Matching Panels A, B, C, D) */}
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
             <div className="flex items-center gap-1.5 text-xs">
               <button
@@ -906,7 +1258,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
 
-              {[1, 2, 3, 4, 5].map((pageNum) => (
+              {(totalPages <= 12 ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((pageNum) => (
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
@@ -930,7 +1282,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                     : 'text-slate-600 hover:bg-slate-100 border border-slate-200'
                 }`}
               >
-                {totalPages || 20}
+                {totalPages}
               </button>
 
               <button
@@ -944,8 +1296,10 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
 
             <div className="flex items-center gap-3">
               <span className="text-xs text-slate-500 font-medium">
-                Showing {(currentPage - 1) * pageSize + 1}-
-                {Math.min(currentPage * pageSize, totalCatalogueCount)} of {totalCatalogueCount} places
+                {t('discovery.showingPlaces', `Showing ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, totalCount)} of ${totalCount} places`)
+                  .replace('{start}', String((currentPage - 1) * pageSize + 1))
+                  .replace('{end}', String(Math.min(currentPage * pageSize, totalCount)))
+                  .replace('{total}', String(totalCount))}
               </span>
 
               <button
@@ -960,7 +1314,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                 className="text-xs font-bold text-[#078ACB] hover:underline flex items-center gap-1"
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>View all {totalCatalogueCount} places</span>
+                <span>View all {totalCount} places</span>
               </button>
             </div>
           </div>
@@ -973,10 +1327,10 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
             >
               <span className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-200" />
-                <span>Choose for me</span>
+                <span>{t('discovery.chooseForMe', 'Choose for me')}</span>
               </span>
               <span className="text-[11px] text-emerald-100 font-normal">
-                Recommend the best plan based on time, crowd and season
+                {t('discovery.chooseForMeSub', 'Recommend the best plan based on time, crowd and season')}
               </span>
             </button>
           </div>
@@ -1232,7 +1586,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                   onClick={() => setActiveWorkflowStep('discovery')}
                   className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors shadow-2xs"
                 >
-                  <span>View nearby places ({totalCatalogueCount})</span>
+                  <span>View nearby places ({totalCount})</span>
                 </button>
               </div>
 
@@ -1470,43 +1824,74 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
       )}
 
       {/* =========================================================================
-          PANEL D: YOUR 5-HOUR DAY (TIMELINE, TIMERS, OVERDUE & RECALIBRATION)
+          PANEL E: YOUR 5-HOUR DAY / TRIP ITINERARY & LIVE PROGRESS (MATCHING PANEL E)
          ========================================================================= */}
       {(activeWorkflowStep === 'itinerary' || activeWorkflowStep === 'progress') && (
         <div className="bg-white rounded-3xl border border-[#E1EAF1] p-6 shadow-xs space-y-6 animate-in fade-in duration-200">
-          {/* Header & Trip Timer (Matching Image 2 Panel D) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E1EAF1] gap-3">
+          {/* Header & Trip Timer (Matching Panel E) */}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between pb-4 border-b border-[#E1EAF1] gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <h2 className="text-xl font-bold text-[#14283F]">Your {timeBudgetHours}-hour day</h2>
               </div>
               <p className="text-xs text-[#718198] mt-0.5">
-                A personalized plan with sightseeing, meals and real transport. Start, track and adjust anytime.
+                {currentLocation.name.split('(')[0].trim()} → {selectedPlaceName} (+ nearby places & meals)
               </p>
             </div>
 
-            {/* Trip Timer Widget (Top Right) */}
-            <div className="flex items-center gap-3 bg-[#F5F8FB] border border-[#D0DDE7] px-4 py-2 rounded-2xl shadow-2xs self-start sm:self-auto">
-              <div className="space-y-0.5">
-                <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#078ACB]" />
-                  <span>Trip Timer</span>
+            {/* Right side: Trip Timer + Destination Photo Thumbnail */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {/* Trip Timer Widget */}
+              <div className="flex items-center gap-3 bg-[#F5F8FB] border border-[#D0DDE7] px-4 py-2 rounded-2xl shadow-2xs">
+                <div className="space-y-0.5">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-[#078ACB]" />
+                    <span>Trip Timer</span>
+                  </div>
+                  <div className="text-sm font-mono font-bold text-[#14283F]">
+                    {formatTimeSeconds(timerSecondsElapsed)} / {formatTimeSeconds(totalTimerSeconds)}
+                  </div>
                 </div>
-                <div className="text-sm font-mono font-bold text-[#14283F]">
-                  {formatTimeSeconds(totalTimerSeconds - timerSecondsRemaining)} /{' '}
-                  {formatTimeSeconds(totalTimerSeconds)}
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors shadow-2xs"
+                  title={isTimerRunning ? 'Pause timer' : 'Resume timer'}
+                >
+                  {isTimerRunning ? <Pause className="w-4 h-4 text-[#078ACB]" /> : <Play className="w-4 h-4 text-emerald-600 ml-0.5" />}
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors shadow-2xs"
-                title={isTimerRunning ? 'Pause timer' : 'Resume timer'}
-              >
-                {isTimerRunning ? <Pause className="w-4 h-4 text-[#078ACB]" /> : <Play className="w-4 h-4 text-emerald-600 ml-0.5" />}
-              </button>
+              {/* Destination Photo Thumbnail Card (Matching Panel E) */}
+              <div className="flex items-center gap-2.5 bg-white border border-slate-200 p-2.5 rounded-2xl shadow-2xs">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                  <img
+                    src="https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=200&q=80"
+                    alt={selectedPlaceName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#14283F]">{selectedPlaceName}</div>
+                  <div className="text-[10px] text-slate-500">Planned: 60 min</div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <button
+                      onClick={() => setIsEarlyRecalibrationModalOpen(true)}
+                      className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold hover:bg-emerald-100"
+                    >
+                      Complete Early
+                    </button>
+                    <button
+                      onClick={() => setTimerSecondsRemaining(prev => prev + 1800)}
+                      className="px-2 py-0.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-bold hover:bg-slate-100"
+                    >
+                      + Extend
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1548,7 +1933,43 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
             </div>
           )}
 
-          {/* Sequential Timeline (Matching Image 2 Panel D) */}
+          {/* Early Finish Recalibration Box (Bottom Right in Panel E) */}
+          <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-950">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-amber-100 shrink-0">
+                <img
+                  src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=200&q=80"
+                  alt="Kawaguchiko Music Forest"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <div className="text-xs font-bold flex items-center gap-1 text-amber-900">
+                  <span>⚡</span>
+                  <span>You're 22 minutes ahead!</span>
+                </div>
+                <p className="text-[11px] text-amber-800 mt-0.5">
+                  Would you like to add a nearby spot? (e.g. Kawaguchiko Music Forest)
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={() => setIsEarlyRecalibrationModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl border border-amber-300 bg-white text-amber-900 text-xs font-bold hover:bg-amber-100 transition-colors"
+              >
+                Adjust plan
+              </button>
+              <button
+                onClick={handleApplyRecalibration}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs"
+              >
+                Add to plan
+              </button>
+            </div>
+          </div>
+
+          {/* Sequential Timeline (Matching Panel E) */}
           <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
             {/* 1. Breakfast */}
             <div className="relative flex items-start gap-4">
@@ -1606,11 +2027,11 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
 
             {/* 3. Oishi Park (Main Visit) - Active Stop */}
             <div className="relative flex items-start gap-4">
-              <span className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-sky-600 border-2 border-white ring-4 ring-sky-100" />
-              <div className="w-24 shrink-0 text-xs font-mono font-bold text-[#078ACB]">
+              <span className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white ring-4 ring-emerald-100" />
+              <div className="w-24 shrink-0 text-xs font-mono font-bold text-emerald-700">
                 10:10 - 11:10
               </div>
-              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-sky-50/70 border-2 border-sky-300 shadow-2xs gap-3">
+              <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-emerald-50/70 border-2 border-emerald-300 shadow-2xs gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-slate-200">
                     <img
@@ -1622,8 +2043,8 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                   <div>
                     <div className="flex items-center gap-1.5">
                       <h4 className="text-xs font-bold text-[#14283F]">{selectedPlaceName} (Main Visit)</h4>
-                      <span className="text-[10px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">
-                        CURRENT STOP
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                        ⏱ {formatTimeSeconds(timerSecondsRemaining)} left
                       </span>
                     </div>
                     <span className="text-[11px] text-slate-600 block mt-0.5">
@@ -1638,7 +2059,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                   className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 self-start sm:self-auto"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-                  <span>Finished Early (-40m)?</span>
+                  <span>Finished Early (-22m)?</span>
                 </button>
               </div>
             </div>

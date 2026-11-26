@@ -98,7 +98,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
             <div className="h-3 w-px bg-slate-300" />
 
-            {/* Quick English / Japanese Switcher Pills */}
+            {/* Quick English / Japanese / Hindi Switcher Pills */}
             <button
               onClick={() => setLocale('en')}
               className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
@@ -118,6 +118,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               }`}
             >
               日本語
+            </button>
+            <button
+              onClick={() => setLocale('hi')}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
+                currentLocale === 'hi'
+                  ? 'bg-[#078ACB] text-white shadow-2xs'
+                  : 'text-[#718198] hover:text-[#14283F]'
+              }`}
+            >
+              हिन्दी
             </button>
           </div>
 

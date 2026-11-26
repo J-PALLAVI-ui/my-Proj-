@@ -15,13 +15,15 @@ export const TRANSLATIONS: Record<string, NamespaceTranslations> = {
     'nav.showHana': 'Show Hana Chat',
     'nav.langFramework': '170+ language framework',
 
-    // Discovery (Screen A)
+    // Discovery (Screen A & B)
     'discovery.whereStarting': 'Where are you starting?',
     'discovery.subWhere': 'Select your current location (station, bus stop, or area) to discover nearby places.',
     'discovery.startLoc': 'Starting Location',
     'discovery.useGps': 'Use GPS',
     'discovery.famousPlaces': 'Famous Places',
     'discovery.hiddenGems': 'Hidden Gems',
+    'discovery.allPlaces': 'All Places',
+    'discovery.recUpdated': 'Recommendations updated for {station} (within 10 km)',
     'discovery.searchPlaceholder': 'Search places (e.g., Oishi Park, shrine, lake...)',
     'discovery.allCategories': 'All Categories',
     'discovery.distance': 'Distance',
@@ -31,8 +33,21 @@ export const TRANSLATIONS: Record<string, NamespaceTranslations> = {
     'discovery.chooseForMeSub': 'Recommend the best plan based on time, crowd, and season',
     'discovery.accessible': 'Accessible',
     'discovery.fujikyuLine': 'Fujikyu Line / Bus',
+    'discovery.noMetroFound': 'No metro station found. The Mount Fuji and Fuji Five Lakes region does not have an underground subway or metro system. Public transit is operated by the Fujikyuko Railway and Fujikyu bus lines.',
+    'discovery.showingPlaces': 'Showing {start}-{end} of {total} places',
+    'discovery.mappedPlaces': 'mapped places',
 
-    // Trip Setup & Itinerary (Screen B)
+    // Station Names
+    'station.kawaguchiko': 'Kawaguchiko Station (Main Hub)',
+    'station.fujisan': 'Fujisan Station (Mt. Fuji Station)',
+    'station.fuji5th': 'Mt. Fuji 5th Station',
+    'station.shinfuji': 'Shin-Fuji Station',
+    'station.mishima': 'Mishima Station',
+    'station.gotemba': 'Gotemba Station',
+    'station.tokyo': 'Tokyo Station',
+    'station.shinjuku': 'Shinjuku Station',
+
+    // Trip Setup & Itinerary (Screen B & E)
     'plan.title': 'Plan Your Trip',
     'plan.subtitle': 'Set your destination, time and preferences. Hana will build a smart itinerary for you.',
     'plan.destination': 'Destination',
@@ -61,18 +76,18 @@ export const TRANSLATIONS: Record<string, NamespaceTranslations> = {
     'transit.onMyWay': "I'm on my way",
     'transit.liveUnavailable': 'Live departure info is unavailable. Showing verified schedule.',
 
-    // Trip Progress (Screen D)
-    'progress.title': 'Trip Progress (Live)',
-    'progress.subtitle': "Your journey is in progress. I'm tracking your time, stops and plan.",
+    // Trip Progress & Recalibration (Screen E)
+    'progress.title': 'Your 5-hour Itinerary',
+    'progress.subtitle': 'Kawaguchiko Station → Oishi Park (+ nearby places & meals)',
     'progress.completed': 'Completed',
     'progress.visited': 'Visited',
     'progress.planned': 'Planned',
-    'progress.aheadAlert': 'You are {min} min ahead — update the rest of your plan?',
-    'progress.aheadDesc': 'I can adjust your next stops, add a hidden gem, or extend your lunch time.',
+    'progress.aheadAlert': "You're 22 minutes ahead!",
+    'progress.aheadDesc': 'Would you like to add a nearby spot?',
     'progress.revisedPlan': 'Revised Plan (Optimized)',
     'progress.originalPlan': 'Original Plan (for comparison)',
-    'progress.applyPlan': 'Apply updated plan',
-    'progress.keepPlan': 'Keep original plan'
+    'progress.applyPlan': 'Add to plan',
+    'progress.keepPlan': 'Adjust plan'
   },
   ja: {
     // Nav
@@ -80,17 +95,19 @@ export const TRANSLATIONS: Record<string, NamespaceTranslations> = {
     'nav.stage3': 'ステージ 3',
     'nav.digitalTwin': '3Dデジタルツイン',
     'nav.placesCatalogue': '観光地カタログ',
-    'nav.hideHana': 'Hana チャット非表示',
-    'nav.showHana': 'Hana チャット表示',
+    'nav.hideHana': 'ハナとチャットを隠す',
+    'nav.showHana': 'ハナとチャットを表示',
     'nav.langFramework': '170+ 言語フレームワーク',
 
-    // Discovery (Screen A)
-    'discovery.whereStarting': 'どこから出発しますか？',
-    'discovery.subWhere': '現在の場所（駅、バス停、エリア）を選択して、周辺の名所や穴場を見つけましょう。',
+    // Discovery (Screen A & B)
+    'discovery.whereStarting': '現在の出発地はどこですか？',
+    'discovery.subWhere': '現在地（駅、バス停、エリア）を選択して、近くの名所スポットを探しましょう。',
     'discovery.startLoc': '出発場所',
     'discovery.useGps': 'GPSを使用',
-    'discovery.famousPlaces': '有名スポット',
-    'discovery.hiddenGems': '穴場スポット',
+    'discovery.famousPlaces': '有名な観光地',
+    'discovery.hiddenGems': '隠れた名所',
+    'discovery.allPlaces': 'すべての観光地',
+    'discovery.recUpdated': '{station} のおすすめ観光地を更新しました（10km以内）',
     'discovery.searchPlaceholder': '名所を検索（例: 大石公園、神社、湖...）',
     'discovery.allCategories': 'すべてのカテゴリー',
     'discovery.distance': '距離',
@@ -100,8 +117,21 @@ export const TRANSLATIONS: Record<string, NamespaceTranslations> = {
     'discovery.chooseForMeSub': '時間、混雑、季節に基づいて最適なプランを提案します',
     'discovery.accessible': 'バリアフリー対応',
     'discovery.fujikyuLine': '富士急バス / 鉄道',
+    'discovery.noMetroFound': '地下鉄の駅は見つかりませんでした。富士山・富士五湖地域には地下鉄（メトロ）はなく、富士急行線および富士急バスが主要な公共交通機関です。',
+    'discovery.showingPlaces': '{total} 件中 {start}-{end} 件を表示',
+    'discovery.mappedPlaces': '登録スポット',
 
-    // Trip Setup & Itinerary (Screen B)
+    // Station Names
+    'station.kawaguchiko': '河口湖駅（メインハブ）',
+    'station.fujisan': '富士山駅（Mt. Fuji Station）',
+    'station.fuji5th': '富士山五合目',
+    'station.shinfuji': '新富士駅',
+    'station.mishima': '三島駅',
+    'station.gotemba': '御殿場駅',
+    'station.tokyo': '東京駅',
+    'station.shinjuku': '新宿駅',
+
+    // Trip Setup & Itinerary (Screen B & E)
     'plan.title': '旅行プランを作成',
     'plan.subtitle': '目的地、所要時間、好みを設定してください。Hanaが最適な旅程を作成します。',
     'plan.destination': '目的地',
@@ -130,17 +160,101 @@ export const TRANSLATIONS: Record<string, NamespaceTranslations> = {
     'transit.onMyWay': '出発しました',
     'transit.liveUnavailable': 'リアルタイム運行情報は未設定です。確定時刻表を表示しています。',
 
-    // Trip Progress (Screen D)
-    'progress.title': '旅行進行状況（ライブ）',
-    'progress.subtitle': '旅行中プランを追跡中。時間、立ち寄り先、乗り継ぎを管理しています。',
+    // Trip Progress & Recalibration (Screen E)
+    'progress.title': '5時間の旅程',
+    'progress.subtitle': '河口湖駅 → 大石公園（+周辺スポット・お食事）',
     'progress.completed': '訪問完了',
     'progress.visited': '滞在時間',
     'progress.planned': '予定時間',
-    'progress.aheadAlert': '{min}分早く終わりました — プランを更新しますか？',
-    'progress.aheadDesc': '次の立ち寄り先を調整したり、近くの穴場やカフェの追加が可能です。',
+    'progress.aheadAlert': '予定より22分早く進んでいます！',
+    'progress.aheadDesc': '近くのスポットを追加しますか？',
     'progress.revisedPlan': '更新後プラン（最適化済み）',
     'progress.originalPlan': '元のプラン（比較用）',
-    'progress.applyPlan': '更新プランを適用',
-    'progress.keepPlan': '元のプランを維持'
+    'progress.applyPlan': 'プランに追加',
+    'progress.keepPlan': 'プランを調整'
+  },
+  hi: {
+    // Nav
+    'nav.crowdsense': 'क्राउडसेंस इंजन',
+    'nav.stage3': 'चरण 3',
+    'nav.digitalTwin': '3D डिजिटल ट्विन',
+    'nav.placesCatalogue': 'स्थान सूची',
+    'nav.hideHana': 'हाना चैट छिपाएँ',
+    'nav.showHana': 'हाना चैट दिखाएँ',
+    'nav.langFramework': '170+ भाषा ढाँचा',
+
+    // Discovery (Screen A & B)
+    'discovery.whereStarting': 'आप कहाँ से यात्रा शुरू कर रहे हैं?',
+    'discovery.subWhere': 'अपने वर्तमान स्थान (स्टेशन, बस स्टॉप या क्षेत्र) का चयन करें और पास के स्थल खोजें।',
+    'discovery.startLoc': 'शुरुआती स्थान',
+    'discovery.useGps': 'GPS प्रयोग करें',
+    'discovery.famousPlaces': 'प्रसिद्ध स्थान',
+    'discovery.hiddenGems': 'छिपे हुए स्थान',
+    'discovery.allPlaces': 'सभी स्थान',
+    'discovery.recUpdated': '{station} के लिए सिफारिशें अपडेट की गईं (10 किमी के भीतर)',
+    'discovery.searchPlaceholder': 'स्थान खोजें (उदा., ओइशी पार्क, मंदिर, झील...)',
+    'discovery.allCategories': 'सभी श्रेणियां',
+    'discovery.distance': 'दूरी',
+    'discovery.crowd': 'भीड़',
+    'discovery.openNow': 'अभी खुला है',
+    'discovery.chooseForMe': 'मेरे लिए चुनें',
+    'discovery.chooseForMeSub': 'समय, भीड़ और मौसम के आधार पर सर्वश्रेष्ठ योजना सुझाएँ',
+    'discovery.accessible': 'सुलभ',
+    'discovery.fujikyuLine': 'फुजिक्यु बस / रेलवे',
+    'discovery.noMetroFound': 'कोई मेट्रो स्टेशन नहीं मिला। माउंट फूजी और फूजी फाइव लेक्स क्षेत्र में कोई भूमिगत मेट्रो प्रणाली नहीं है। सार्वजनिक परिवहन फुजिक्युको रेलवे और फुजिक्यु बस लाइनों द्वारा संचालित होता है।',
+    'discovery.showingPlaces': '{total} में से {start}-{end} स्थान दिखाए जा रहे हैं',
+    'discovery.mappedPlaces': 'मानचित्रित स्थान',
+
+    // Station Names
+    'station.kawaguchiko': 'कावागुचीको स्टेशन (मुख्य हब)',
+    'station.fujisan': 'फुजिसान स्टेशन (माउंट फूजी स्टेशन)',
+    'station.fuji5th': 'माउंट फूजी 5 वां स्टेशन',
+    'station.shinfuji': 'शिन-फूजी स्टेशन',
+    'station.mishima': 'मिशिमा स्टेशन',
+    'station.gotemba': 'गोतेम्बा स्टेशन',
+    'station.tokyo': 'टोक्यो स्टेशन',
+    'station.shinjuku': 'शिंजुकु स्टेशन',
+
+    // Trip Setup & Itinerary (Screen B & E)
+    'plan.title': 'अपनी यात्रा की योजना बनाएं',
+    'plan.subtitle': 'अपना गंतव्य, समय और प्राथमिकताएं निर्धारित करें। हाना आपके लिए एक स्मार्ट यात्रा कार्यक्रम बनाएगी।',
+    'plan.destination': 'गंतव्य',
+    'plan.tripTimeBudget': 'यात्रा समय बजट',
+    'plan.departure': 'प्रस्थान',
+    'plan.foodPref': 'भोजन प्राथमिकता',
+    'plan.foodStyle': 'भोजन शैली',
+    'plan.localCuisine': 'स्थानीय व्यंजन',
+    'plan.hiddenLocalSpots': 'छिपे हुए स्थानीय स्थल',
+    'plan.famousRestaurants': 'प्रसिद्ध रेस्तरां',
+    'plan.showBusRoute': 'बस मार्ग दिखाएं',
+    'plan.estimateCost': 'कुल लागत का अनुमान लगाएं',
+    'plan.changePlan': 'योजना बदलें',
+    'plan.startLiveTrip': 'लाइव यात्रा प्रगति शुरू करें',
+    'plan.estTravel': 'अनुमानित यात्रा',
+
+    // Transit Instruction Popup (Screen C)
+    'transit.nextBus': 'अगली बस',
+    'transit.walkTo': 'बोर्डिंग स्टॉप तक चलें',
+    'transit.operator': 'ऑपरेटर',
+    'transit.routeService': 'मार्ग / सेवा',
+    'transit.destinationStop': 'गंतव्य स्टॉप',
+    'transit.departureTime': 'प्रस्थान समय',
+    'transit.fareAdult': 'किराया (वयस्क)',
+    'transit.openRoute': 'मार्ग खोलें',
+    'transit.onMyWay': 'मैं रास्ते में हूँ',
+    'transit.liveUnavailable': 'लाइव प्रस्थान जानकारी अनुपलब्ध है। सत्यापित समय सारिणी दिखाई जा रही है।',
+
+    // Trip Progress & Recalibration (Screen E)
+    'progress.title': 'आपका 5-घंटे का यात्रा कार्यक्रम',
+    'progress.subtitle': 'कावागुचीको स्टेशन → ओइशी पार्क (+ पास के स्थान और भोजन)',
+    'progress.completed': 'पूर्ण हुआ',
+    'progress.visited': 'भ्रमण किया',
+    'progress.planned': 'नियोजित',
+    'progress.aheadAlert': 'आप 22 मिनट आगे हैं!',
+    'progress.aheadDesc': 'क्या आप पास का कोई स्थान जोड़ना चाहेंगे?',
+    'progress.revisedPlan': 'संशोधित योजना (अनुकूलित)',
+    'progress.originalPlan': 'मूल योजना (तुलना के लिए)',
+    'progress.applyPlan': 'योजना में जोड़ें',
+    'progress.keepPlan': 'योजना समायोजित करें'
   }
 };

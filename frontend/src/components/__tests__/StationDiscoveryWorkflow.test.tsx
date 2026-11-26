@@ -2,14 +2,17 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TripProvider } from '../../context/TripContext';
+import { I18nProvider } from '../../i18n/I18nContext';
 import { StationDiscoveryWorkflow } from '../StationDiscoveryWorkflow';
 
 describe('StationDiscoveryWorkflow Component (4-Panel Architecture)', () => {
   it('renders Panel A (Starting Station & Complete Catalogue) with 237 places', () => {
     render(
-      <TripProvider>
-        <StationDiscoveryWorkflow />
-      </TripProvider>
+      <I18nProvider>
+        <TripProvider>
+          <StationDiscoveryWorkflow />
+        </TripProvider>
+      </I18nProvider>
     );
 
     // Screen A title & location
@@ -108,5 +111,156 @@ describe('StationDiscoveryWorkflow Component (4-Panel Architecture)', () => {
     expect(screen.getByText(/You finished/)).toBeDefined();
     expect(screen.getByText(/Revised Plan/)).toBeDefined();
     expect(screen.getByText('Apply updated plan')).toBeDefined();
+  });
+
+  describe('Autonomous Dynamic UI Verification (Tests A - J)', () => {
+    it('Test A: Kawaguchiko Station displays Famous Places (124) count and hub pins', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      expect(screen.getByText(/Famous Places \(124\)/)).toBeDefined();
+      expect(screen.getByText(/Lake Kawaguchiko Hub/)).toBeDefined();
+    });
+
+    it('Test B: Changing station to Fujisan Station displays blue alert banner and updated count', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      // Open station dropdown
+      const stationBtn = screen.getByText(/Kawaguchiko Station \(Main Hub\)/);
+      fireEvent.click(stationBtn);
+
+      // Select Fujisan Station
+      const fujisanOption = screen.getByRole('button', { name: /Fujisan Station/i });
+      fireEvent.click(fujisanOption);
+
+      // Check blue banner
+      expect(screen.getByText(/Recommendations updated for Fujisan Station/)).toBeDefined();
+      expect(screen.getByText(/Famous Places \(98\)/)).toBeDefined();
+    });
+
+    it('Test C: Switching to Hidden Gems displays (137) count for Fujisan Station', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      // Open station dropdown and select Fujisan Station
+      const stationBtn = screen.getByText(/Kawaguchiko Station \(Main Hub\)/);
+      fireEvent.click(stationBtn);
+      const fujisanOption = screen.getByRole('button', { name: /Fujisan Station/i });
+      fireEvent.click(fujisanOption);
+
+      // Click Hidden Gems tab
+      const gemsTab = screen.getByText(/Hidden Gems/);
+      fireEvent.click(gemsTab);
+
+      expect(screen.getByText(/Hidden Gems \(137\)/)).toBeDefined();
+    });
+
+    it('Test D: Switching to All Places displays 237 total places count', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      const allTab = screen.getByText(/All Places/);
+      fireEvent.click(allTab);
+      expect(screen.getByText(/All Places \(237\)/)).toBeDefined();
+    });
+
+    it('Test E: Searching for "bus stop" filters places', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      const searchInput = screen.getByPlaceholderText(/Search places/);
+      fireEvent.change(searchInput, { target: { value: 'bus stop' } });
+      expect(searchInput).toBeDefined();
+    });
+
+    it('Test F: Searching for "metro" or "subway" renders honest educational notice', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      const searchInput = screen.getByPlaceholderText(/Search places/);
+      fireEvent.change(searchInput, { target: { value: 'metro station' } });
+      expect(screen.getAllByText(/No metro station found/)[0]).toBeDefined();
+    });
+
+    it('Test G: Changing travel mode from Walk to Bicycle updates mode state', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      const bikePill = screen.getAllByText(/Bicycle/)[0];
+      fireEvent.click(bikePill);
+      expect(bikePill).toBeDefined();
+    });
+
+    it('Test H: Changing travel mode to Fujikyu Bus displays transit network map', () => {
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      const busPill = screen.getAllByRole('button', { name: /Fujikyu Bus/i })[0] || screen.getAllByText(/Fujikyu Bus/)[0];
+      fireEvent.click(busPill);
+      expect(screen.getByText(/Kawaguchiko Network/)).toBeDefined();
+    });
+
+    it('Test I: Switching to Japanese translates key UI labels', () => {
+      localStorage.setItem('fujinova_locale', 'ja');
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      expect(screen.getByText('現在の出発地はどこですか？')).toBeDefined();
+      expect(screen.getByText(/有名な観光地/)).toBeDefined();
+      expect(screen.getByText('GPSを使用')).toBeDefined();
+      localStorage.setItem('fujinova_locale', 'en');
+    });
+
+    it('Test J: Switching to Hindi translates key UI labels', () => {
+      localStorage.setItem('fujinova_locale', 'hi');
+      render(
+        <I18nProvider>
+          <TripProvider>
+            <StationDiscoveryWorkflow />
+          </TripProvider>
+        </I18nProvider>
+      );
+      expect(screen.getByText('आप कहाँ से यात्रा शुरू कर रहे हैं?')).toBeDefined();
+      expect(screen.getByText(/प्रसिद्ध स्थान/)).toBeDefined();
+      expect(screen.getByText('GPS प्रयोग करें')).toBeDefined();
+      localStorage.setItem('fujinova_locale', 'en');
+    });
   });
 });

@@ -67,7 +67,18 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useI18n = (): I18nContextType => {
   const context = useContext(I18nContext);
   if (!context) {
-    throw new Error('useI18n must be used within an I18nProvider');
+    return {
+      currentLocale: 'en',
+      setLocale: () => {},
+      activeLocaleDef: ALL_LOCALES[0],
+      t: (key: string, defaultText?: string) => {
+        const enDict = TRANSLATIONS['en'];
+        return (enDict && enDict[key]) || defaultText || key;
+      },
+      isRtl: false,
+      locales: ALL_LOCALES,
+      totalLocalesCount: ALL_LOCALES.length
+    };
   }
   return context;
 };
