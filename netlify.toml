@@ -1,3 +1,4 @@
+
 # Netlify Build Configuration for FujiNova
 [build]
   base = "frontend"
@@ -5,10 +6,10 @@
   command = "npm ci && npm run build"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   VITE_API_BASE_URL = "https://web-production-03e494fe.up.railway.app"
 
-# SPA Fallback: Route all client-side paths to index.html
+# SPA Fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"

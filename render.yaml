@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: fujinova-backend
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python -m backend.data.seed_places && uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: FUJINOVA_ENV
+        value: production
+      - key: FUJINOVA_PRIMARY_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_API_KEY
+        sync: false
