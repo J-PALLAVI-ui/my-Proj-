@@ -130,6 +130,9 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
     placesList.find((p) => p.place_id === currentPlaceId) ||
     (placesList.length > 0 ? placesList[0] : null);
 
+  const targetDestination = recommendations?.selected_destination;
+  const targetCrowdStatus = recommendations?.selected_crowd_status || activePlaceStatus;
+
   const originalPlaceStatus: PlaceCrowdStatus | null =
     placesList.find((p) => p.place_id === originalPlaceId) || activePlaceStatus;
 
@@ -328,8 +331,14 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
               <span className="text-xs font-bold uppercase tracking-wider text-[#718198]">
                 Target Destination
               </span>
-              <span className="text-xs font-bold uppercase px-3 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                {activePlaceStatus?.crowd_level || 'HIGH'} CROWD
+              <span className={`text-xs font-bold uppercase px-3 py-0.5 rounded-full border ${
+                (targetCrowdStatus?.level || targetCrowdStatus?.crowd_level || 'HIGH') === 'HIGH'
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : (targetCrowdStatus?.level || targetCrowdStatus?.crowd_level) === 'MODERATE'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                {targetCrowdStatus?.level || targetCrowdStatus?.crowd_level || 'HIGH'} CROWD
               </span>
             </div>
 
@@ -337,30 +346,33 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
             <div className="mt-3.5 relative h-44 rounded-xl overflow-hidden bg-slate-100 border border-[#E1EAF1]">
               <img
                 src={
-                  activePlaceStatus?.image_url ||
+                  targetDestination?.image_url ||
+                  targetCrowdStatus?.image_url ||
                   'https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=800&q=80'
                 }
-                alt={activePlaceStatus?.name_en || 'Oishi Park'}
+                alt={targetDestination?.name_en || targetCrowdStatus?.name_en || 'Oishi Park'}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
                     'https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=800&q=80';
                 }}
               />
-              <div className="absolute bottom-2 left-2 bg-[#0C2340]/80 backdrop-blur-xs text-white text-[10px] font-mono px-2 py-0.5 rounded">
-                {activePlaceStatus?.image_attribution || 'Photo: Unsplash'}
+              <div className="absolute bottom-2 left-2 bg-[#0C2340]/80 backdrop-blur-xs text-white text-[10px] font-mono px-2 py-0.5 rounded max-w-[90%] truncate">
+                {targetDestination?.required_attribution || targetCrowdStatus?.image_attribution || 'Photo: Unsplash'}
               </div>
             </div>
 
             <div className="mt-3.5">
               <h3 className="text-base font-bold text-[#14283F]">
-                {activePlaceStatus?.name_en || 'Oishi Park'}
+                {targetDestination?.name_en || targetCrowdStatus?.name_en || 'Oishi Park'}
               </h3>
-              <p className="text-xs text-[#718198]">{activePlaceStatus?.name_ja || '大石公園'}</p>
+              <p className="text-xs text-[#718198]">{targetDestination?.name_ja || targetCrowdStatus?.name_ja || '大石公園'}</p>
 
               <div className="mt-3 p-3 bg-rose-50/70 border border-rose-200 rounded-xl text-xs text-rose-800 leading-relaxed">
                 <span className="font-bold block mb-0.5">Congestion Advisory:</span>
-                {activePlaceStatus?.congestion_advisory ||
+                {recommendations?.advisory_summary ||
+                  recommendations?.current_congestion_advisory ||
+                  targetCrowdStatus?.congestion_advisory ||
                   'High tour bus arrivals; lakefront promenade heavily congested.'}
               </div>
 
@@ -368,7 +380,7 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
                 <button
                   onClick={() =>
                     onAskHana(
-                      `How do I reach ${activePlaceStatus?.name_en || 'Oishi Park'} using Fujikyu bus or train from Kawaguchiko Station?`
+                      `How do I reach ${targetDestination?.name_en || targetCrowdStatus?.name_en || 'Oishi Park'} using Fujikyu bus or train from Kawaguchiko Station?`
                     )
                   }
                   className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-[#078ACB] bg-[#EBF5FB] hover:bg-[#DDF0FA] border border-[#BDE0F5] rounded-xl transition-colors shadow-2xs"

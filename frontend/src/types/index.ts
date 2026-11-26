@@ -149,6 +149,7 @@ export interface CrowdRecommendationResponse {
   current_place_name: string;
   current_crowd_level: CrowdLevel | string;
   current_congestion_advisory: string;
+  advisory_summary?: string;
   current_scenario: CrowdScenario;
   data_classification: CrowdDataClassification | string;
   real_time_telemetry_status: string;

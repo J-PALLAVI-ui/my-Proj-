@@ -206,13 +206,17 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
   const transitGroupRef = useRef<THREE.Group | null>(null);
   const crowdGroupRef = useRef<THREE.Group | null>(null);
 
-  // Orbit control state
+  // Orbit control & smooth interpolation state
   const isDraggingRef = useRef(false);
   const prevMousePosRef = useRef({ x: 0, y: 0 });
   const cameraTargetRef = useRef(new THREE.Vector3(0, 10, 0));
+  const targetLookAtRef = useRef(new THREE.Vector3(0, 10, 0));
   const cameraDistanceRef = useRef(110);
+  const targetDistanceRef = useRef(110);
   const cameraThetaRef = useRef(Math.PI / 4);
+  const targetThetaRef = useRef(Math.PI / 4);
   const cameraPhiRef = useRef(Math.PI / 3);
+  const targetPhiRef = useRef(Math.PI / 3);
 
   const populatePins = (items: Landmark3D[], pinsGroup: THREE.Group, crowdGroup: THREE.Group) => {
     while (pinsGroup.children.length > 0) {
@@ -364,6 +368,9 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
     const pos = groundGeo.attributes.position;
 
     // Displace vertices to sculpt Mount Fuji (peak at x=0, z=15, elevation ~37.76 units)
+    const colors: number[] = [];
+    const colorVal = new THREE.Color();
+
     for (let i = 0; i < pos.count; i++) {
       const vx = pos.getX(i);
       const vz = pos.getZ(i);
@@ -392,14 +399,35 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
         elevation += Math.sin(vz * 0.08) * 3 + (vx - 50) * 0.15;
       }
 
-      pos.setY(i, Math.max(0, elevation));
+      const finalElev = Math.max(0, elevation);
+      pos.setY(i, finalElev);
+
+      // Realistic Geological and Altitude Vertex Coloring
+      if (finalElev > 24) {
+        // Pristine Snow Cap
+        colorVal.setHex(0xf8fafc);
+      } else if (finalElev > 16) {
+        // High volcanic basalt & scree slopes
+        colorVal.setHex(0x504840);
+      } else if (distFuji < 36 && finalElev > 6) {
+        // Dense alpine pine forest slopes
+        colorVal.setHex(0x2d4f29);
+      } else if (finalElev > 7) {
+        // Surrounding Misaka and Tanzawa forested ridges
+        colorVal.setHex(0x365731);
+      } else {
+        // Verdant lowland meadows, agricultural fields and lake shorelines
+        colorVal.setHex(0x3b6b33);
+      }
+      colors.push(colorVal.r, colorVal.g, colorVal.b);
     }
+    groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     groundGeo.computeVertexNormals();
 
     const terrainMat = new THREE.MeshStandardMaterial({
-      color: 0x223322,
-      roughness: 0.85,
-      metalness: 0.1,
+      vertexColors: true,
+      roughness: 0.75,
+      metalness: 0.08,
       flatShading: true
     });
     const terrainMesh = new THREE.Mesh(groundGeo, terrainMat);
@@ -411,7 +439,7 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
     snowConeGeo.translate(0, 8, 0);
     const snowMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      roughness: 0.4,
+      roughness: 0.35,
       metalness: 0.05
     });
     const snowCap = new THREE.Mesh(snowConeGeo, snowMat);
@@ -419,13 +447,13 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
     snowCap.castShadow = true;
     scene.add(snowCap);
 
-    // 6. Five Lakes (Water Surfaces)
+    // 6. Five Lakes (Water Surfaces with Specular Alpine Reflection)
     const lakeMaterial = new THREE.MeshStandardMaterial({
       color: 0x0284c7,
-      roughness: 0.15,
-      metalness: 0.7,
+      roughness: 0.12,
+      metalness: 0.85,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.92
     });
 
     // Lake Kawaguchiko
@@ -526,10 +554,34 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
       reqId = requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
 
-      // Gentle floating animation on pin beacons
+      // Smooth camera interpolation towards target
+      const lerp = 0.08;
+      cameraTargetRef.current.x += (targetLookAtRef.current.x - cameraTargetRef.current.x) * lerp;
+      cameraTargetRef.current.y += (targetLookAtRef.current.y - cameraTargetRef.current.y) * lerp;
+      cameraTargetRef.current.z += (targetLookAtRef.current.z - cameraTargetRef.current.z) * lerp;
+      cameraDistanceRef.current += (targetDistanceRef.current - cameraDistanceRef.current) * lerp;
+      cameraPhiRef.current += (targetPhiRef.current - cameraPhiRef.current) * lerp;
+      cameraThetaRef.current += (targetThetaRef.current - cameraThetaRef.current) * lerp;
+      updateCameraPosition();
+
+      // Level of Detail (LOD) check based on camera distance
       if (pinsGroupRef.current) {
+        const isFar = cameraDistanceRef.current > 85;
         pinsGroupRef.current.children.forEach((pin, idx) => {
-          const baseAlt = pin.userData?.landmark?.altitude ?? 1.2;
+          const loc = pin.userData?.landmark;
+          const isLandmark = loc && [
+            'kawaguchiko_oishi_park',
+            'arakurayama_chureito',
+            'fujikawaguchiko_station',
+            'shojiko_tategohama',
+            'motosuko_viewpoint',
+            'yamanakako_nagaike_park',
+            'saiko_iyashi_nenba',
+            'oshino_hakkai'
+          ].includes(loc.id);
+
+          pin.visible = !isFar || isLandmark;
+          const baseAlt = loc?.altitude ?? 1.2;
           pin.position.y = baseAlt + 1 + Math.sin(elapsedTime * 2 + idx) * 0.25;
         });
       }
@@ -550,9 +602,8 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
       const dy = e.clientY - prevMousePosRef.current.y;
       prevMousePosRef.current = { x: e.clientX, y: e.clientY };
 
-      cameraThetaRef.current -= dx * 0.008;
-      cameraPhiRef.current = Math.max(0.15, Math.min(Math.PI / 2.2, cameraPhiRef.current - dy * 0.008));
-      updateCameraPosition();
+      targetThetaRef.current -= dx * 0.008;
+      targetPhiRef.current = Math.max(0.15, Math.min(Math.PI / 2.2, targetPhiRef.current - dy * 0.008));
     };
 
     const onMouseUp = () => {
@@ -561,8 +612,7 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      cameraDistanceRef.current = Math.max(30, Math.min(220, cameraDistanceRef.current + e.deltaY * 0.12));
-      updateCameraPosition();
+      targetDistanceRef.current = Math.max(30, Math.min(220, targetDistanceRef.current + e.deltaY * 0.12));
     };
 
     // Raycast Pin Clicking
@@ -637,18 +687,16 @@ export const DigitalTwin3D: React.FC<DigitalTwin3DProps> = ({
   };
 
   const flyTo = (targetX: number, targetZ: number, targetDistance = 60) => {
-    cameraTargetRef.current.set(targetX, 4, targetZ);
-    cameraDistanceRef.current = targetDistance;
-    cameraPhiRef.current = Math.PI / 3.2;
-    updateCameraPosition();
+    targetLookAtRef.current.set(targetX, 4, targetZ);
+    targetDistanceRef.current = targetDistance;
+    targetPhiRef.current = Math.PI / 3.2;
   };
 
   const handleResetCamera = () => {
-    cameraTargetRef.current.set(0, 10, 0);
-    cameraDistanceRef.current = 110;
-    cameraThetaRef.current = Math.PI / 4;
-    cameraPhiRef.current = Math.PI / 3;
-    updateCameraPosition();
+    targetLookAtRef.current.set(0, 10, 0);
+    targetDistanceRef.current = 110;
+    targetThetaRef.current = Math.PI / 4;
+    targetPhiRef.current = Math.PI / 3;
   };
 
   // Switch Lighting between Day, Sunset, Night

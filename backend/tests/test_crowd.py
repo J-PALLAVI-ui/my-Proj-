@@ -134,3 +134,34 @@ def test_t3_07_hana_crowd_intent_and_grounding():
     assert top_alt.crowd_reduction_pct > 0
     assert len(top_alt.recommendation_reason) > 10
     assert top_alt.place.fuji_view_rating >= 4
+
+
+def test_t3_08_oishi_park_nearby_alternatives_and_distinct_photos():
+    """Verify Oishi Park recommends nearby lakeside gems with genuine distinct photos."""
+    req = CrowdRecommendationRequest(
+        place_id="kawaguchiko_oishi_park",
+        preference="quiet",
+        scenario="high"
+    )
+    rec_res = recommendation_service.get_recommendations(req)
+    cand_ids = [alt.place.place_id for alt in rec_res.alternatives]
+
+    # Verify nearby lake gems appear
+    assert any(pid in cand_ids for pid in [
+        "nagasaki_cape_kawaguchiko",
+        "kuwazaki_lakeside_point",
+        "ubuyagasaki",
+        "lake_kawaguchiko",
+        "nagasaki_view_park",
+        "kawaguchiko_yagizaki_park"
+    ])
+
+    # Ensure all top alternatives have distances <= 15 km
+    for alt in rec_res.alternatives:
+        assert alt.distance_km <= 15.0
+        assert alt.image_url and alt.image_url.startswith("https://")
+        assert alt.image_attribution
+
+    # Ensure images among alternatives are not all identical
+    img_urls = [alt.image_url for alt in rec_res.alternatives]
+    assert len(set(img_urls)) >= 2

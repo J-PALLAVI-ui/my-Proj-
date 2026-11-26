@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CrowdLevel } from '../types';
 import { useTrip } from '../context/TripContext';
 import { apiUrl } from '../config';
@@ -8,7 +8,10 @@ import {
   DollarSign, 
   Compass, 
   MessageSquare,
-  Sparkles
+  Sparkles,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 
 interface LiveRegionMapProps {
@@ -282,10 +285,131 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
     return matchesLake && matchesDiscovery;
   });
 
+  const [zoomLevel, setZoomLevel] = useState<number>(1.0);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoveredLocationId, setHoveredLocationId] = useState<string | null>(null);
+
+  const KEY_LANDMARKS = useMemo(() => new Set([
+    'kawaguchiko_oishi_park',
+    'arakurayama_chureito',
+    'fujikawaguchiko_station',
+    'shojiko_tategohama',
+    'motosuko_viewpoint',
+    'yamanakako_nagaike_park',
+    'saiko_iyashi_nenba',
+    'oshino_hakkai'
+  ]), []);
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(3.5, Math.round((prev + 0.4) * 10) / 10));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => {
+      const next = Math.max(1.0, Math.round((prev - 0.4) * 10) / 10);
+      if (next === 1.0) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1.0);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
   const handlePinClick = (loc: MapLocation) => {
     setActiveLocation(loc);
     onSelectPlace?.(loc.id);
     setSelectedPlace(loc.id, loc.name_en);
+  };
+
+  // Grid/proximity based clustering
+  const clusters = useMemo(() => {
+    const clusterRadius = zoomLevel >= 2.4 ? 0 : (zoomLevel >= 1.6 ? 22 : 36);
+
+    if (clusterRadius === 0) {
+      return filtered.map(p => ({
+        id: p.id,
+        isCluster: false,
+        count: 1,
+        x: p.x * 10,
+        y: p.y * 7,
+        places: [p],
+        dominantType: p.discovery_type || 'FAMOUS'
+      }));
+    }
+
+    const assigned = new Set<string>();
+    const result: Array<{
+      id: string;
+      isCluster: boolean;
+      count: number;
+      x: number;
+      y: number;
+      places: MapLocation[];
+      dominantType: string;
+    }> = [];
+
+    for (let i = 0; i < filtered.length; i++) {
+      const loc = filtered[i];
+      if (assigned.has(loc.id)) continue;
+
+      const px = loc.x * 10;
+      const py = loc.y * 7;
+      const group: MapLocation[] = [loc];
+      assigned.add(loc.id);
+
+      for (let j = i + 1; j < filtered.length; j++) {
+        const other = filtered[j];
+        if (assigned.has(other.id)) continue;
+        const ox = other.x * 10;
+        const oy = other.y * 7;
+        const dist = Math.hypot(px - ox, py - oy);
+        if (dist <= clusterRadius) {
+          group.push(other);
+          assigned.add(other.id);
+        }
+      }
+
+      if (group.length === 1) {
+        result.push({
+          id: loc.id,
+          isCluster: false,
+          count: 1,
+          x: px,
+          y: py,
+          places: group,
+          dominantType: loc.discovery_type || 'FAMOUS'
+        });
+      } else {
+        const avgX = group.reduce((sum, p) => sum + p.x * 10, 0) / group.length;
+        const avgY = group.reduce((sum, p) => sum + p.y * 7, 0) / group.length;
+        const hiddenCount = group.filter(p => p.discovery_type === 'HIDDEN_GEM').length;
+        const dominantType = hiddenCount > group.length / 2 ? 'HIDDEN_GEM' : 'FAMOUS';
+
+        result.push({
+          id: `cluster_${group[0].id}_${group.length}`,
+          isCluster: true,
+          count: group.length,
+          x: Math.round(avgX),
+          y: Math.round(avgY),
+          places: group,
+          dominantType
+        });
+      }
+    }
+    return result;
+  }, [filtered, zoomLevel]);
+
+  const handleClusterClick = (cluster: { x: number; y: number; places: MapLocation[] }) => {
+    setZoomLevel(prev => Math.min(3.2, prev + 0.8));
+    setPanOffset({
+      x: (500 - cluster.x) * 0.5,
+      y: (350 - cluster.y) * 0.5
+    });
+    if (cluster.places.length > 0) {
+      handlePinClick(cluster.places[0]);
+    }
   };
 
   const getCrowdBadge = (lvl: CrowdLevel) => {
@@ -388,6 +512,34 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
 
       {/* SVG Canvas Map Area */}
       <div className="flex-1 relative overflow-hidden bg-radial from-slate-800 via-slate-900 to-slate-950 flex items-center justify-center">
+        {/* Interactive Floating Zoom Controls */}
+        <div className="absolute top-4 right-4 flex flex-col gap-1.5 z-20">
+          <button
+            onClick={handleZoomIn}
+            title="Zoom In"
+            className="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-sky-400 border border-slate-700 flex items-center justify-center shadow-md transition-colors"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleZoomOut}
+            title="Zoom Out"
+            className="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-sky-400 border border-slate-700 flex items-center justify-center shadow-md transition-colors"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleResetZoom}
+            title="Reset Map View"
+            className="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center shadow-md transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
+          <div className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700 text-[9px] font-mono text-center text-slate-400">
+            {Math.round(zoomLevel * 100)}%
+          </div>
+        </div>
+
         <svg
           viewBox="0 0 1000 700"
           className="w-full h-full object-contain pointer-events-auto"
@@ -414,165 +566,250 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
           </pattern>
           <rect width="1000" height="700" fill="url(#grid)" />
 
-          {/* Mountain Fuji Base & Silhouette in South */}
-          <g transform="translate(500, 560)">
-            {/* Fuji mountain contour */}
-            <polygon
-              points="0,-220 280,120 -280,120"
-              fill="url(#fujiGrad)"
-              opacity="0.85"
-            />
-            {/* Snow Cap */}
-            <polygon
-              points="0,-220 70,-135 -70,-135"
-              fill="#ffffff"
-              opacity="0.95"
-            />
-            {/* Fuji Elevation Label */}
-            <text
-              x="0"
-              y="-235"
-              textAnchor="middle"
-              fill="#38bdf8"
-              fontSize="16"
-              fontWeight="bold"
-              letterSpacing="1"
-            >
-              ▲ Mt. Fuji (富士山 3,776m)
-            </text>
-            <text
-              x="0"
-              y="100"
-              textAnchor="middle"
-              fill="#94a3b8"
-              fontSize="12"
-            >
-              UNESCO World Cultural Heritage
-            </text>
-          </g>
-
-          {/* Five Lakes Shapes */}
-          {/* Lake Motosu */}
-          <g>
-            <path
-              d="M 100,300 C 130,280 150,320 135,350 C 110,360 80,340 100,300 Z"
-              fill="url(#lakeGrad)"
-              stroke="#38bdf8"
-              strokeWidth="1.5"
-            />
-            <text x="120" y="325" fill="#bae6fd" fontSize="11" fontWeight="600" textAnchor="middle">
-              Lake Motosu
-            </text>
-          </g>
-
-          {/* Lake Shoji */}
-          <g>
-            <path
-              d="M 180,250 C 210,230 230,260 215,280 C 195,290 170,275 180,250 Z"
-              fill="url(#lakeGrad)"
-              stroke="#38bdf8"
-              strokeWidth="1.5"
-            />
-            <text x="200" y="265" fill="#bae6fd" fontSize="10" fontWeight="600" textAnchor="middle">
-              Lake Shoji
-            </text>
-          </g>
-
-          {/* Lake Saiko */}
-          <g>
-            <path
-              d="M 280,220 C 360,200 400,240 370,260 C 320,270 260,250 280,220 Z"
-              fill="url(#lakeGrad)"
-              stroke="#38bdf8"
-              strokeWidth="1.5"
-            />
-            <text x="330" y="242" fill="#bae6fd" fontSize="12" fontWeight="600" textAnchor="middle">
-              Lake Saiko
-            </text>
-          </g>
-
-          {/* Lake Kawaguchiko */}
-          <g>
-            <path
-              d="M 440,180 C 520,150 620,190 580,240 C 530,270 450,220 440,180 Z"
-              fill="url(#lakeGrad)"
-              stroke="#38bdf8"
-              strokeWidth="2"
-            />
-            <text x="520" y="210" fill="#e0f2fe" fontSize="14" fontWeight="bold" textAnchor="middle">
-              Lake Kawaguchiko
-            </text>
-          </g>
-
-          {/* Lake Yamanakako */}
-          <g>
-            <path
-              d="M 760,320 C 850,280 910,370 860,420 C 800,430 730,370 760,320 Z"
-              fill="url(#lakeGrad)"
-              stroke="#38bdf8"
-              strokeWidth="2"
-            />
-            <text x="820" y="370" fill="#e0f2fe" fontSize="13" fontWeight="bold" textAnchor="middle">
-              Lake Yamanakako
-            </text>
-          </g>
-
-          {/* Connecting Scenic Highway Lines */}
-          <path
-            d="M 120,330 Q 200,270 330,245 T 520,220 Q 640,240 700,280 T 820,370"
-            fill="none"
-            stroke="#475569"
-            strokeWidth="2"
-            strokeDasharray="4 4"
-          />
-
-          {/* Attraction Markers */}
-          {filtered.map((loc) => {
-            const isSelected = activeLocation.id === loc.id;
-            const px = loc.x * 10;
-            const py = loc.y * 7;
-
-            return (
-              <g
-                key={loc.id}
-                transform={`translate(${px}, ${py})`}
-                onClick={() => handlePinClick(loc)}
-                className="cursor-pointer transition-transform hover:scale-125"
+          {/* Zoomable Map Layer */}
+          <g
+            transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoomLevel})`}
+            style={{ transformOrigin: '500px 350px', transition: 'transform 0.25s ease-out' }}
+          >
+            {/* Mountain Fuji Base & Silhouette in South */}
+            <g transform="translate(500, 560)">
+              {/* Fuji mountain contour */}
+              <polygon
+                points="0,-220 280,120 -280,120"
+                fill="url(#fujiGrad)"
+                opacity="0.85"
+              />
+              {/* Snow Cap */}
+              <polygon
+                points="0,-220 70,-135 -70,-135"
+                fill="#ffffff"
+                opacity="0.95"
+              />
+              {/* Fuji Elevation Label */}
+              <text
+                x="0"
+                y="-235"
+                textAnchor="middle"
+                fill="#38bdf8"
+                fontSize="16"
+                fontWeight="bold"
+                letterSpacing="1"
               >
-                {/* Pin shadow and ripple */}
-                {isSelected && (
-                  <circle
-                    r="20"
-                    fill="#38bdf8"
-                    opacity="0.3"
-                    className="animate-ping"
-                  />
-                )}
-                <circle
-                  r={isSelected ? "14" : "10"}
-                  fill={isSelected ? "#0284c7" : "#0f172a"}
-                  stroke={isSelected ? "#ffffff" : (loc.crowd_level === 'low' ? '#10b981' : (loc.crowd_level === 'moderate' ? '#f59e0b' : '#f43f5e'))}
-                  strokeWidth="2.5"
-                  filter={isSelected ? "url(#glow)" : undefined}
-                />
-                <circle
-                  r="4"
-                  fill="#ffffff"
-                />
-                {/* Label text */}
-                <text
-                  y="-14"
-                  textAnchor="middle"
-                  fill={isSelected ? "#ffffff" : "#cbd5e1"}
-                  fontSize={isSelected ? "11" : "9"}
-                  fontWeight={isSelected ? "bold" : "600"}
-                  className="pointer-events-none drop-shadow-md"
+                ▲ Mt. Fuji (富士山 3,776m)
+              </text>
+              <text
+                x="0"
+                y="100"
+                textAnchor="middle"
+                fill="#94a3b8"
+                fontSize="12"
+              >
+                UNESCO World Cultural Heritage
+              </text>
+            </g>
+
+            {/* Five Lakes Shapes */}
+            {/* Lake Motosu */}
+            <g>
+              <path
+                d="M 100,300 C 130,280 150,320 135,350 C 110,360 80,340 100,300 Z"
+                fill="url(#lakeGrad)"
+                stroke="#38bdf8"
+                strokeWidth="1.5"
+              />
+              <text x="120" y="325" fill="#bae6fd" fontSize="11" fontWeight="600" textAnchor="middle">
+                Lake Motosu
+              </text>
+            </g>
+
+            {/* Lake Shoji */}
+            <g>
+              <path
+                d="M 180,250 C 210,230 230,260 215,280 C 195,290 170,275 180,250 Z"
+                fill="url(#lakeGrad)"
+                stroke="#38bdf8"
+                strokeWidth="1.5"
+              />
+              <text x="200" y="265" fill="#bae6fd" fontSize="10" fontWeight="600" textAnchor="middle">
+                Lake Shoji
+              </text>
+            </g>
+
+            {/* Lake Saiko */}
+            <g>
+              <path
+                d="M 280,220 C 360,200 400,240 370,260 C 320,270 260,250 280,220 Z"
+                fill="url(#lakeGrad)"
+                stroke="#38bdf8"
+                strokeWidth="1.5"
+              />
+              <text x="330" y="242" fill="#bae6fd" fontSize="12" fontWeight="600" textAnchor="middle">
+                Lake Saiko
+              </text>
+            </g>
+
+            {/* Lake Kawaguchiko */}
+            <g>
+              <path
+                d="M 440,180 C 520,150 620,190 580,240 C 530,270 450,220 440,180 Z"
+                fill="url(#lakeGrad)"
+                stroke="#38bdf8"
+                strokeWidth="2"
+              />
+              <text x="520" y="210" fill="#e0f2fe" fontSize="14" fontWeight="bold" textAnchor="middle">
+                Lake Kawaguchiko
+              </text>
+            </g>
+
+            {/* Lake Yamanakako */}
+            <g>
+              <path
+                d="M 760,320 C 850,280 910,370 860,420 C 800,430 730,370 760,320 Z"
+                fill="url(#lakeGrad)"
+                stroke="#38bdf8"
+                strokeWidth="2"
+              />
+              <text x="820" y="370" fill="#e0f2fe" fontSize="13" fontWeight="bold" textAnchor="middle">
+                Lake Yamanakako
+              </text>
+            </g>
+
+            {/* Connecting Scenic Highway Lines */}
+            <path
+              d="M 120,330 Q 200,270 330,245 T 520,220 Q 640,240 700,280 T 820,370"
+              fill="none"
+              stroke="#475569"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+
+            {/* Clustered or Individual Destination Markers */}
+            {clusters.map((item) => {
+              if (item.isCluster) {
+                // Interactive Cluster Marker
+                const isHiddenDom = item.dominantType === 'HIDDEN_GEM';
+                return (
+                  <g
+                    key={item.id}
+                    transform={`translate(${item.x}, ${item.y})`}
+                    onClick={() => handleClusterClick(item)}
+                    className="cursor-pointer transition-transform hover:scale-125"
+                  >
+                    <circle
+                      r={item.count >= 10 ? "18" : "15"}
+                      fill={isHiddenDom ? 'rgba(16, 185, 129, 0.25)' : 'rgba(2, 132, 199, 0.25)'}
+                      stroke={isHiddenDom ? '#10b981' : '#38bdf8'}
+                      strokeWidth="1.5"
+                      className="animate-pulse"
+                    />
+                    <circle
+                      r={item.count >= 10 ? "13" : "11"}
+                      fill={isHiddenDom ? '#047857' : '#0284c7'}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                    <text
+                      y="4"
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="10"
+                      fontWeight="bold"
+                      className="pointer-events-none select-none font-mono"
+                    >
+                      {item.count}
+                    </text>
+                  </g>
+                );
+              }
+
+              // Individual Destination Marker
+              const loc = item.places[0];
+              const isSelected = activeLocation.id === loc.id;
+              const isHovered = hoveredLocationId === loc.id;
+              const isLandmark = KEY_LANDMARKS.has(loc.id);
+              const showLabel = isSelected || isHovered || (isLandmark && zoomLevel >= 1.3);
+              const isHidden = loc.discovery_type === 'HIDDEN_GEM';
+
+              return (
+                <g
+                  key={loc.id}
+                  transform={`translate(${item.x}, ${item.y})`}
+                  onClick={() => handlePinClick(loc)}
+                  onMouseEnter={() => setHoveredLocationId(loc.id)}
+                  onMouseLeave={() => setHoveredLocationId(null)}
+                  className="cursor-pointer transition-transform hover:scale-125"
                 >
-                  {loc.name_en.split(' ')[0]}
-                </text>
-              </g>
-            );
-          })}
+                  {/* Pin shadow and ripple */}
+                  {isSelected && (
+                    <circle
+                      r="20"
+                      fill="#38bdf8"
+                      opacity="0.3"
+                      className="animate-ping"
+                    />
+                  )}
+
+                  {isHidden ? (
+                    // Diamond Pin for Hidden Gems
+                    <polygon
+                      points="0,-12 10,0 0,12 -10,0"
+                      fill={isSelected ? '#059669' : '#064e3b'}
+                      stroke={isSelected ? '#ffffff' : '#10b981'}
+                      strokeWidth={isSelected ? '2.5' : '1.8'}
+                      filter={isSelected ? 'url(#glow)' : undefined}
+                    />
+                  ) : (
+                    // Circular Pin for Famous Locations
+                    <circle
+                      r={isSelected ? '14' : '9'}
+                      fill={isSelected ? '#0284c7' : '#0f172a'}
+                      stroke={
+                        isSelected
+                          ? '#ffffff'
+                          : loc.crowd_level === 'low'
+                          ? '#10b981'
+                          : loc.crowd_level === 'moderate'
+                          ? '#f59e0b'
+                          : '#f43f5e'
+                      }
+                      strokeWidth={isSelected ? '2.5' : '1.8'}
+                      filter={isSelected ? 'url(#glow)' : undefined}
+                    />
+                  )}
+
+                  <circle
+                    r={isHidden ? '3' : '3.5'}
+                    fill="#ffffff"
+                  />
+
+                  {/* Progressive Collision-Free Label */}
+                  {showLabel && (
+                    <g transform="translate(0, -18)" className="pointer-events-none">
+                      <rect
+                        x={-(Math.min(loc.name_en.length * 3.5, 60))}
+                        y="-12"
+                        width={Math.min(loc.name_en.length * 7, 120)}
+                        height="16"
+                        rx="4"
+                        fill="rgba(15, 23, 42, 0.9)"
+                        stroke={isSelected ? '#38bdf8' : (isHidden ? '#10b981' : '#64748b')}
+                        strokeWidth="1"
+                      />
+                      <text
+                        y="-1"
+                        textAnchor="middle"
+                        fill="#ffffff"
+                        fontSize="9"
+                        fontWeight={isSelected ? 'bold' : '600'}
+                      >
+                        {loc.name_en.split(' ')[0]}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </g>
         </svg>
 
         {/* Selected Place Overlay Card (Bottom of Map) */}

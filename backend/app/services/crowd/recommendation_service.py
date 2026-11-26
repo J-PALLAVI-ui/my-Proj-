@@ -109,8 +109,16 @@ class RecommendationService:
                 # Popular fine: crowd barely matters
                 crowd_factor = max(0.0, (100 - cand_crowd.score) / 100.0) * 15.0
 
-            # Proximity factor (closer is preferred, up to 25 points)
-            prox_factor = max(0.0, (30.0 - dist_km) / 30.0) * 25.0
+            # Proximity factor with progressive distance tiers:
+            # Tier 1 (<= 5km): Lakeside & immediate neighbors get maximum proximity advantage
+            # Tier 2 (<= 12km): Adjacent lake shores & scenic routes
+            # Tier 3 (<= 30km): Wider Fuji Five Lakes region
+            if dist_km <= 5.0:
+                prox_factor = 25.0 + max(0.0, (5.0 - dist_km) / 5.0) * 10.0  # 25-35 pts
+            elif dist_km <= 12.0:
+                prox_factor = 15.0 + max(0.0, (12.0 - dist_km) / 7.0) * 10.0  # 15-25 pts
+            else:
+                prox_factor = max(0.0, (30.0 - dist_km) / 18.0) * 15.0  # 0-15 pts
 
             # Category affinity factor (up to 20 points)
             affinities = AFFINITY_MAP.get(orig_place.primary_category, {orig_place.primary_category: 1.0})
@@ -164,7 +172,13 @@ class RecommendationService:
             if cand_crowd.advisory:
                 justification += f" Note: {cand_crowd.advisory}"
 
-            img_info = get_attraction_image(cand.place_id)
+            # Prioritize authentic photo and attribution from verified place database
+            cand_img = cand.image_url
+            cand_attr = cand.required_attribution
+            if not cand_img:
+                img_info = get_attraction_image(cand.place_id)
+                cand_img = img_info.get("url")
+                cand_attr = img_info.get("attribution")
 
             card = CrowdAlternativeCard(
                 place=cand,
@@ -173,8 +187,8 @@ class RecommendationService:
                 crowd_reduction_pct=reduction_pct,
                 recommendation_reason=justification,
                 match_factors=match_factors,
-                image_url=img_info["url"],
-                image_attribution=img_info["attribution"]
+                image_url=cand_img or "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1200&q=80",
+                image_attribution=cand_attr or "FujiNova Verified Destination"
             )
             scored_cards.append((total_score, card))
 
