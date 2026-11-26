@@ -96,7 +96,8 @@ class SeasonalCrowdForecast:
         dt = target_date or now.date()
         tm = target_time or now.time()
 
-        base_score = BASE_POPULARITY.get(place_id, 50)
+        from backend.app.services.crowd.defaults import default_popularity
+        base_score = BASE_POPULARITY.get(place_id) or default_popularity(place_id)
 
         # 1. Day of Week Factor
         # Monday=0 ... Sunday=6

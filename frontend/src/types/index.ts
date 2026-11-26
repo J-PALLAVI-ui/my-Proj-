@@ -294,4 +294,120 @@ export interface TimeBudgetedItineraryResponse {
   }>;
 }
 
+export type TravelMode =
+  | 'walk'
+  | 'bike'
+  | 'fujikyu_bus'
+  | 'bus'
+  | 'train'
+  | 'taxi'
+  | 'mixed'
+  | 'car';
+
+export interface TravelModeOption {
+  id: TravelMode;
+  label: string;
+  icon: string;
+  badge: string;
+  distance_basis: string;
+  default_max_km: number;
+  honest_disclosure: string;
+}
+
+export interface DiscoveryPlaceItem {
+  place_id: string;
+  name_en: string;
+  name_ja: string;
+  latitude: number;
+  longitude: number;
+  primary_category: string;
+  sub_category?: string;
+  image_url: string;
+  distance_km: number;
+  travel_time_min: number;
+  fare_yen: number;
+  mode: TravelMode;
+  route_label: string;
+  crowd_level: string;
+  crowd_score: number;
+  fuji_view_rating: number;
+  accessibility_status: string;
+  discovery_type: 'FAMOUS' | 'HIDDEN_GEM' | string;
+  honest_disclosure: string;
+  admission_type: string;
+  composite_score?: number;
+}
+
+export interface DiscoveryRecommendResponse {
+  mode: TravelMode;
+  mode_label: string;
+  start_hub: string;
+  view: 'catalogue' | 'recommended';
+  max_km: number;
+  total_destinations: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  honest_disclosure: string;
+  places: DiscoveryPlaceItem[];
+}
+
+export interface TransitRouteSegment {
+  mode: string;
+  instruction: string;
+  stop_name?: string;
+  departure_time?: string;
+  arrival_time?: string;
+  duration_min: number;
+  distance_m: number;
+  fare_yen: number;
+  operator?: string;
+  route_name?: string;
+  coordinates?: [number, number][];
+}
+
+export interface TransitRouteResponse {
+  origin_name: string;
+  destination_id: string;
+  destination_name: string;
+  destination_name_ja?: string;
+  mode: TravelMode;
+  total_duration_min: number;
+  total_fare_yen: number;
+  honest_disclosure: string;
+  segments: TransitRouteSegment[];
+  coordinates: [number, number][];
+}
+
+export interface PlanTimelineItem {
+  step_number: number;
+  step_type: 'MEAL' | 'TRANSIT' | 'SIGHTSEEING' | 'RETURN' | string;
+  title: string;
+  location_name: string;
+  time_range: string;
+  duration_min: number;
+  fare_yen: number;
+  cost_est_yen: string;
+  status: 'completed' | 'in_progress' | 'upcoming';
+  notes?: string;
+  icon?: string;
+  image_url?: string;
+}
+
+export interface TripPlanResponse {
+  plan_id: string;
+  title: string;
+  start_location: string;
+  target_place_id: string;
+  target_place_name: string;
+  available_hours: number;
+  departure_time: string;
+  return_time: string;
+  travel_mode: TravelMode;
+  timeline: PlanTimelineItem[];
+  total_cost_yen: number;
+  variations: Array<{ id: string; label: string; description: string }>;
+}
+
+
 

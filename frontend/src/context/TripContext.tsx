@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { TimeBudgetedItineraryResponse } from '../types';
+import {
+  TimeBudgetedItineraryResponse,
+  TravelMode,
+  TransitRouteResponse,
+  TripPlanResponse
+} from '../types';
 import { apiUrl } from '../config';
 
 export interface LocationInfo {
@@ -115,6 +120,14 @@ interface TripContextType {
   selectedPlaceId: string;
   selectedPlaceName: string;
   setSelectedPlace: (id: string, name?: string) => void;
+  travelMode: TravelMode;
+  setTravelMode: (mode: TravelMode) => void;
+  discoveryView: 'recommended' | 'catalogue';
+  setDiscoveryView: (view: 'recommended' | 'catalogue') => void;
+  activeRouteData: TransitRouteResponse | null;
+  setActiveRouteData: (route: TransitRouteResponse | null) => void;
+  activePlanData: TripPlanResponse | null;
+  setActivePlanData: (plan: TripPlanResponse | null) => void;
   timeBudgetHours: number;
   setTimeBudgetHours: (hours: number) => void;
   departureTime: string;
@@ -143,11 +156,17 @@ interface TripContextType {
   setIsAdaptiveModalOpen: (open: boolean) => void;
   adaptiveMinutesAhead: number;
   applyAdaptivePlan: () => void;
-  activeWorkflowStep: 'discovery' | 'setup' | 'progress';
-  setActiveWorkflowStep: (step: 'discovery' | 'setup' | 'progress') => void;
+  activeWorkflowStep: 'discovery' | 'modes' | 'route' | 'itinerary' | 'setup' | 'progress';
+  setActiveWorkflowStep: (step: 'discovery' | 'modes' | 'route' | 'itinerary' | 'setup' | 'progress') => void;
   activeItinerary: TimeBudgetedItineraryResponse | null;
   isLoadingItinerary: boolean;
   generateTimePlan: (overrideHours?: number, overrideTarget?: string) => Promise<TimeBudgetedItineraryResponse | null>;
+  fetchTransitRoute: (destinationId?: string, overrideMode?: TravelMode) => Promise<TransitRouteResponse | null>;
+  fetchTripPlan: (targetId?: string, overrideHours?: number, overrideMode?: TravelMode) => Promise<TripPlanResponse | null>;
+  recalibrateTrip: (completedStepIndex: number, timeDeltaMinutes: number) => Promise<TripPlanResponse | null>;
+  isSoundEnabled: boolean;
+  toggleSoundEnabled: () => void;
+  playTimerChime: () => void;
   isWalkthroughOpen: boolean;
   openWalkthrough: () => void;
   closeWalkthrough: () => void;
@@ -165,6 +184,10 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentLocation, setCurrentLocation] = useState<LocationInfo>(STANDARD_HUBS[0]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string>('kawaguchiko_oishi_park');
   const [selectedPlaceName, setSelectedPlaceName] = useState<string>('Oishi Park');
+  const [travelMode, setTravelMode] = useState<TravelMode>('fujikyu_bus');
+  const [discoveryView, setDiscoveryView] = useState<'recommended' | 'catalogue'>('catalogue');
+  const [activeRouteData, setActiveRouteData] = useState<TransitRouteResponse | null>(null);
+  const [activePlanData, setActivePlanData] = useState<TripPlanResponse | null>(null);
   const [timeBudgetHours, setTimeBudgetHours] = useState<number>(5.0);
   const [departureTime, setDepartureTime] = useState<string>('09:30');
   const [adultCount, setAdultCount] = useState<number>(1);
@@ -179,7 +202,56 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [completedStepIndices, setCompletedStepIndices] = useState<number[]>([]);
   const [isAdaptiveModalOpen, setIsAdaptiveModalOpen] = useState<boolean>(false);
   const [adaptiveMinutesAhead, setAdaptiveMinutesAhead] = useState<number>(40);
-  const [activeWorkflowStep, setActiveWorkflowStep] = useState<'discovery' | 'setup' | 'progress'>('discovery');
+  const [activeWorkflowStep, setActiveWorkflowStep] = useState<
+    'discovery' | 'modes' | 'route' | 'itinerary' | 'setup' | 'progress'
+  >('discovery');
+
+  const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('fujinova_sound_enabled') !== 'false';
+  });
+
+  const toggleSoundEnabled = useCallback(() => {
+    setIsSoundEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem('fujinova_sound_enabled', String(next));
+      return next;
+    });
+  }, []);
+
+  const playTimerChime = useCallback(() => {
+    if (!isSoundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      // Gentle dual-tone chime (523.25 Hz C5 -> 659.25 Hz E5)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, now);
+      osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.3);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(783.99, now);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 1.2);
+      osc2.stop(now + 1.2);
+    } catch (e) {
+      console.warn('Audio chime playback failed:', e);
+    }
+  }, [isSoundEnabled]);
 
   const toggleFoodStyle = useCallback((style: string) => {
     setFoodStyles((prev) =>
@@ -205,7 +277,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const applyAdaptivePlan = useCallback(() => {
     setIsAdaptiveModalOpen(false);
     setIsTripProgressActive(true);
-    setActiveWorkflowStep('progress');
+    setActiveWorkflowStep('itinerary');
   }, []);
   const [activeItinerary, setActiveItinerary] = useState<TimeBudgetedItineraryResponse | null>(null);
   const [isLoadingItinerary, setIsLoadingItinerary] = useState<boolean>(false);
@@ -318,6 +390,92 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return null;
   };
 
+  const fetchTransitRoute = async (
+    destinationId?: string,
+    overrideMode?: TravelMode
+  ): Promise<TransitRouteResponse | null> => {
+    const target = destinationId ?? selectedPlaceId;
+    const mode = overrideMode ?? travelMode;
+    try {
+      const res = await fetch(apiUrl('/api/v1/discovery/route'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          origin_name: currentLocation.name,
+          destination_id: target,
+          mode: mode,
+          departure_time: departureTime,
+        }),
+      });
+      if (res.ok) {
+        const data: TransitRouteResponse = await res.json();
+        setActiveRouteData(data);
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to fetch transit route:', err);
+    }
+    return null;
+  };
+
+  const fetchTripPlan = async (
+    targetId?: string,
+    overrideHours?: number,
+    overrideMode?: TravelMode
+  ): Promise<TripPlanResponse | null> => {
+    const target = targetId ?? selectedPlaceId;
+    const hours = overrideHours ?? timeBudgetHours;
+    const mode = overrideMode ?? travelMode;
+    try {
+      const res = await fetch(apiUrl('/api/v1/trip/plan'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start_location: currentLocation.name,
+          target_place_id: target,
+          available_hours: hours,
+          departure_time: departureTime,
+          travel_mode: mode,
+          food_preference: foodExperience,
+          food_styles: foodStyles,
+        }),
+      });
+      if (res.ok) {
+        const data: TripPlanResponse = await res.json();
+        setActivePlanData(data);
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to fetch trip plan:', err);
+    }
+    return null;
+  };
+
+  const recalibrateTrip = async (
+    completedStepIndex: number,
+    timeDeltaMinutes: number
+  ): Promise<TripPlanResponse | null> => {
+    try {
+      const res = await fetch(apiUrl('/api/v1/trip/recalibrate'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          original_plan: activePlanData,
+          completed_step_index: completedStepIndex,
+          time_delta_minutes: timeDeltaMinutes,
+        }),
+      });
+      if (res.ok) {
+        const data: TripPlanResponse = await res.json();
+        setActivePlanData(data);
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to recalibrate trip:', err);
+    }
+    return null;
+  };
+
   const openWalkthrough = () => setIsWalkthroughOpen(true);
   const closeWalkthrough = () => setIsWalkthroughOpen(false);
 
@@ -341,6 +499,14 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         selectedPlaceId,
         selectedPlaceName,
         setSelectedPlace,
+        travelMode,
+        setTravelMode,
+        discoveryView,
+        setDiscoveryView,
+        activeRouteData,
+        setActiveRouteData,
+        activePlanData,
+        setActivePlanData,
         timeBudgetHours,
         setTimeBudgetHours,
         departureTime,
@@ -374,6 +540,12 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         activeItinerary,
         isLoadingItinerary,
         generateTimePlan,
+        fetchTransitRoute,
+        fetchTripPlan,
+        recalibrateTrip,
+        isSoundEnabled,
+        toggleSoundEnabled,
+        playTimerChime,
         isWalkthroughOpen,
         openWalkthrough,
         closeWalkthrough,
@@ -402,6 +574,14 @@ const defaultTripState: TripContextType = {
   selectedPlaceId: 'kawaguchiko_oishi_park',
   selectedPlaceName: 'Oishi Park (Lake Kawaguchiko)',
   setSelectedPlace: () => {},
+  travelMode: 'fujikyu_bus',
+  setTravelMode: () => {},
+  discoveryView: 'catalogue',
+  setDiscoveryView: () => {},
+  activeRouteData: null,
+  setActiveRouteData: () => {},
+  activePlanData: null,
+  setActivePlanData: () => {},
   timeBudgetHours: 5.0,
   setTimeBudgetHours: () => {},
   departureTime: '09:30',
@@ -435,6 +615,12 @@ const defaultTripState: TripContextType = {
   activeItinerary: null,
   isLoadingItinerary: false,
   generateTimePlan: async () => null,
+  fetchTransitRoute: async () => null,
+  fetchTripPlan: async () => null,
+  recalibrateTrip: async () => null,
+  isSoundEnabled: true,
+  toggleSoundEnabled: () => {},
+  playTimerChime: () => {},
   isWalkthroughOpen: false,
   openWalkthrough: () => {},
   closeWalkthrough: () => {},

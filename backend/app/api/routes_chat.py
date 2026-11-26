@@ -16,6 +16,7 @@ class ChatMessageRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=128, description="Unique client session identifier")
     message: str = Field(..., min_length=1, max_length=4000, description="Traveller conversational message")
     user_location: Optional[Dict[str, float]] = Field(None, description="Optional GPS coordinates (lat, lon)")
+    context: Optional[Dict[str, Any]] = Field(None, description="Active UI context: station, mode, plan, step")
 
 
 @router.post("/stream")
@@ -29,7 +30,8 @@ async def chat_stream_endpoint(request: ChatMessageRequest):
             async for token in hana_agent.chat(
                 session_id=request.session_id,
                 user_message=request.message,
-                user_location=request.user_location
+                user_location=request.user_location,
+                context=request.context,
             ):
                 payload = json.dumps({"token": token}, ensure_ascii=False)
                 yield f"event: token\ndata: {payload}\n\n"

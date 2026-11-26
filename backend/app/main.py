@@ -14,6 +14,7 @@ from backend.app.api.routes_crowd import router as crowd_router, divert_crowded_
 from backend.app.api.routes_digital_twin import router as digital_twin_router, get_digital_twin_data
 from backend.app.api.routes_itinerary import router as itinerary_router, api_generate_itinerary, api_update_itinerary, ItineraryGenerateRequest, ItineraryUpdateRequest
 from backend.app.api.routes_travel import router as travel_router, travel_search, travel_weather
+from backend.app.api.routes_discovery import router as discovery_router
 from backend.app.api.routes_conversations import (
     router as conversations_router,
     list_conversations as api_list_conversations,
@@ -80,6 +81,7 @@ app.include_router(crowd_router)
 app.include_router(digital_twin_router)
 app.include_router(itinerary_router)
 app.include_router(travel_router)
+app.include_router(discovery_router)
 app.include_router(conversations_router)
 
 # Direct Compatibility Endpoints (as inspected in /docs)

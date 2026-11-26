@@ -406,7 +406,8 @@ class HanaAgent:
         self,
         session_id: str,
         user_message: str,
-        user_location: Optional[Dict[str, float]] = None
+        user_location: Optional[Dict[str, float]] = None,
+        context: Optional[Dict[str, Any]] = None,
     ) -> AsyncIterator[str]:
         """Process turn and stream Hana conversational response with general AI & grounded tools."""
         state = self.get_or_create_state(session_id)
@@ -663,8 +664,35 @@ class HanaAgent:
                     f"Access={p['accessibility_status']} ({p.get('accessibility_evidence')}, Steps: {p.get('stair_step_count')})\n"
                 )
 
+        # 10. Active UI State Context Grounding
+        ui_context_text = ""
+        if context:
+            st = context.get("start_station") or context.get("start_location")
+            tm = context.get("travel_mode")
+            dest = context.get("destination") or context.get("selected_destination")
+            step = context.get("active_workflow_step")
+            hrs = context.get("time_budget_hours")
+            ui_parts = []
+            if st:
+                ui_parts.append(f"Starting Hub: {st}")
+            if tm:
+                ui_parts.append(f"Selected Travel Mode: {tm}")
+            if dest:
+                ui_parts.append(f"Target Destination: {dest}")
+            if hrs:
+                ui_parts.append(f"Available Time Budget: {hrs} hours")
+            if step:
+                ui_parts.append(f"Current Screen: {step}")
+            if ui_parts:
+                ui_context_text = (
+                    "\n\nTRAVELLER ACTIVE APP CONTEXT (The user is looking at this screen in FujiNova right now):\n"
+                    + "\n".join(f"- {p}" for p in ui_parts)
+                    + "\nGround your recommendations to their current starting hub, travel mode, and destination.\n"
+                )
+
         full_system_prompt = (
             HANA_SYSTEM_INSTRUCTION
+            + ui_context_text
             + rag_context
             + weather_context
             + grounding_places_text

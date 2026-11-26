@@ -262,9 +262,10 @@ class CrowdService:
         scenario: CrowdScenario = "high"
     ) -> PlaceCrowdStatus:
         """Calculate deterministic crowd metrics for a destination under chosen scenario."""
+        from backend.app.services.crowd.defaults import default_popularity
         profile = _HIGH_SCENARIO_PROFILES.get(
             place_id,
-            {"score": 35, "peak": "12:00 - 14:00", "advisory": "Standard visitor presence.", "trend": "steady"}
+            {"score": default_popularity(place_id), "peak": "12:00 - 14:00", "advisory": "Standard visitor presence.", "trend": "steady"}
         )
 
         scaled_score = _scale_score(profile["score"], scenario)
@@ -305,7 +306,7 @@ class CrowdService:
         from backend.app.services.crowd.attraction_images import get_attraction_image, HERO_IMAGE
 
         try:
-            all_places = search_places_db(limit=100)
+            all_places = search_places_db(limit=500)
         except Exception:
             all_places = []
 

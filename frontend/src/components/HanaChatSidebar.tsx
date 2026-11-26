@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Place, ChatMessage } from '../types';
 import { apiUrl } from '../config';
 import { PlaceCard } from './PlaceCard';
+import { useTrip } from '../context/TripContext';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 
 interface HanaChatSidebarProps {
@@ -16,8 +17,16 @@ export const HanaChatSidebar: React.FC<HanaChatSidebarProps> = ({
   sessionId,
   externalPrompt,
   onClearExternalPrompt,
-  groundedPlacesCount = 35,
+  groundedPlacesCount = 237,
 }) => {
+  const {
+    currentLocation,
+    travelMode,
+    selectedPlaceName,
+    activeWorkflowStep,
+    timeBudgetHours,
+  } = useTrip();
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -81,12 +90,21 @@ export const HanaChatSidebar: React.FC<HanaChatSidebarProps> = ({
     ]);
 
     try {
+      const chatContext = {
+        start_station: currentLocation.name,
+        travel_mode: travelMode,
+        destination: selectedPlaceName,
+        active_workflow_step: activeWorkflowStep,
+        time_budget_hours: timeBudgetHours,
+      };
+
       let response = await fetch(apiUrl('/api/v1/chat/stream'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: sessionId,
           message: textToSend,
+          context: chatContext,
         }),
       });
 
@@ -97,6 +115,7 @@ export const HanaChatSidebar: React.FC<HanaChatSidebarProps> = ({
           body: JSON.stringify({
             session_id: sessionId,
             message: textToSend,
+            context: chatContext,
           }),
         });
       }
@@ -185,11 +204,39 @@ export const HanaChatSidebar: React.FC<HanaChatSidebarProps> = ({
     }
   };
 
-  const quickPrompts = [
-    'Is Oishi Park crowded? Suggest quieter alternatives.',
-    'Bus from Kawaguchiko Station to Chureito Pagoda',
-    'Best scenic Fuji viewpoint for elderly travelers',
-  ];
+  const quickPrompts = useMemo(() => {
+    if (activeWorkflowStep === 'discovery') {
+      return [
+        'Is Oishi Park crowded? Suggest quieter alternatives.',
+        'Find hidden gems within 5 km by bicycle',
+        'Bus from Kawaguchiko Station to Chureito Pagoda',
+        'Wheelchair-accessible shrines near the lakes',
+      ];
+    }
+    if (activeWorkflowStep === 'modes' || activeWorkflowStep === 'setup') {
+      return [
+        '✓ Create a 5-hour itinerary',
+        '➕ Add food preferences (Hoto noodles)',
+        '🔄 Suggest spots reachable by bicycle',
+        `Taxi fare from ${currentLocation.name.split('(')[0].trim()} to ${selectedPlaceName}`,
+      ];
+    }
+    if (activeWorkflowStep === 'route') {
+      return [
+        '➕ Add lunch & nearby spots',
+        '🕒 Find earlier or later bus departures',
+        '🏔️ Show this route on the 3D Digital Twin',
+        'How do I pay on the Fujikyu Red Line bus?',
+      ];
+    }
+    // 'itinerary' or 'progress'
+    return [
+      '🔄 Update my plan (finished 40 min early)',
+      '☕ Add a café stop near Lake Kawaguchi',
+      '📊 Compare options for the afternoon',
+      'Check return bus times to the station',
+    ];
+  }, [activeWorkflowStep, currentLocation.name, selectedPlaceName]);
 
   return (
     <div className="h-full flex flex-col bg-white border-l border-[#E1EAF1] select-text">
