@@ -9,7 +9,7 @@ import {
 } from '../types';
 import { apiUrl } from '../config';
 import { useTrip } from '../context/TripContext';
-import { TravelOnboardingBar } from './TravelOnboardingBar';
+import { StationDiscoveryWorkflow } from './StationDiscoveryWorkflow';
 import { TravelWalkthroughModal } from './TravelWalkthroughModal';
 import { DestinationComparisonModal } from './DestinationComparisonModal';
 import {
@@ -205,8 +205,8 @@ export const CrowdSenseDashboard: React.FC<CrowdSenseDashboardProps> = ({ onAskH
         </div>
       </div>
 
-      {/* Interactive Travel Onboarding: Starting Location & Time Budget Guide */}
-      <TravelOnboardingBar onAskHana={onAskHana} />
+      {/* Station-First Discovery, Trip Setup, Transit Instruction & Live Progress (Panels A, B, C, D) */}
+      <StationDiscoveryWorkflow onAskHana={onAskHana} />
 
       {/* 2. Simulation & Preference Control Bar (Matches Image 1) */}
       <div className="bg-white rounded-2xl border border-[#E1EAF1] p-4 sm:p-5 shadow-xs">

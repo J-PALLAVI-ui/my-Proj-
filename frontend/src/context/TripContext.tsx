@@ -38,9 +38,65 @@ export const STANDARD_HUBS: LocationInfo[] = [
     isOutsideRegion: false,
   },
   {
-    name: 'Otsuki Station (JR & Fujikyu Junction)',
+    name: 'Mt. Fuji 5th Station (Subaru Line 2,305m)',
+    lat: 35.3941,
+    lon: 138.7328,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Lake Yamanakako (Asahigaoka Bus Terminal)',
+    lat: 35.4072,
+    lon: 138.8785,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Lake Saiko (Iyashi-no-Sato Nenba Stop)',
+    lat: 35.5085,
+    lon: 138.6653,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Lake Shoji (Tatego-hama Scenic Point)',
+    lat: 35.4851,
+    lon: 138.6087,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Lake Motosu (Koan & 1,000-Yen View Hub)',
+    lat: 35.4660,
+    lon: 138.5862,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Otsuki Station (JR Chuo & Fujikyu Junction)',
     lat: 35.6133,
     lon: 138.9422,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Gotemba Station (JR & Mount Fuji East Gateway)',
+    lat: 35.3005,
+    lon: 138.9344,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Shin-Fuji Station (Tokaido Shinkansen)',
+    lat: 35.1421,
+    lon: 138.6631,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
+    name: 'Mishima Station (Shinkansen South Gateway)',
+    lat: 35.1270,
+    lon: 138.9108,
     isGps: false,
     isOutsideRegion: false,
   },
@@ -71,6 +127,24 @@ interface TripContextType {
   setUserHasJrPass: (has: boolean) => void;
   preferQuiet: boolean;
   setPreferQuiet: (quiet: boolean) => void;
+  foodExperience: string;
+  setFoodExperience: (exp: string) => void;
+  foodStyles: string[];
+  toggleFoodStyle: (style: string) => void;
+  activeTransitModalStep: any | null;
+  setActiveTransitModalStep: (step: any | null) => void;
+  isTransitModalOpen: boolean;
+  setIsTransitModalOpen: (open: boolean) => void;
+  isTripProgressActive: boolean;
+  setIsTripProgressActive: (active: boolean) => void;
+  completedStepIndices: number[];
+  markStepCompleted: (index: number, actualMinutes?: number) => void;
+  isAdaptiveModalOpen: boolean;
+  setIsAdaptiveModalOpen: (open: boolean) => void;
+  adaptiveMinutesAhead: number;
+  applyAdaptivePlan: () => void;
+  activeWorkflowStep: 'discovery' | 'setup' | 'progress';
+  setActiveWorkflowStep: (step: 'discovery' | 'setup' | 'progress') => void;
   activeItinerary: TimeBudgetedItineraryResponse | null;
   isLoadingItinerary: boolean;
   generateTimePlan: (overrideHours?: number, overrideTarget?: string) => Promise<TimeBudgetedItineraryResponse | null>;
@@ -97,6 +171,42 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [childCount, setChildCount] = useState<number>(0);
   const [userHasJrPass, setUserHasJrPass] = useState<boolean>(false);
   const [preferQuiet, setPreferQuiet] = useState<boolean>(true);
+  const [foodExperience, setFoodExperience] = useState<string>('local');
+  const [foodStyles, setFoodStyles] = useState<string[]>(['Hoto noodles', 'Soba']);
+  const [activeTransitModalStep, setActiveTransitModalStep] = useState<any | null>(null);
+  const [isTransitModalOpen, setIsTransitModalOpen] = useState<boolean>(false);
+  const [isTripProgressActive, setIsTripProgressActive] = useState<boolean>(false);
+  const [completedStepIndices, setCompletedStepIndices] = useState<number[]>([]);
+  const [isAdaptiveModalOpen, setIsAdaptiveModalOpen] = useState<boolean>(false);
+  const [adaptiveMinutesAhead, setAdaptiveMinutesAhead] = useState<number>(40);
+  const [activeWorkflowStep, setActiveWorkflowStep] = useState<'discovery' | 'setup' | 'progress'>('discovery');
+
+  const toggleFoodStyle = useCallback((style: string) => {
+    setFoodStyles((prev) =>
+      prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style]
+    );
+  }, []);
+
+  const markStepCompleted = useCallback((index: number, actualMinutes?: number) => {
+    setCompletedStepIndices((prev) => (prev.includes(index) ? prev : [...prev, index]));
+    if (actualMinutes !== undefined) {
+      const plannedMinutes = 60;
+      const diff = plannedMinutes - actualMinutes;
+      if (diff > 0) {
+        setAdaptiveMinutesAhead(diff);
+        setIsAdaptiveModalOpen(true);
+      }
+    } else {
+      setAdaptiveMinutesAhead(40);
+      setIsAdaptiveModalOpen(true);
+    }
+  }, []);
+
+  const applyAdaptivePlan = useCallback(() => {
+    setIsAdaptiveModalOpen(false);
+    setIsTripProgressActive(true);
+    setActiveWorkflowStep('progress');
+  }, []);
   const [activeItinerary, setActiveItinerary] = useState<TimeBudgetedItineraryResponse | null>(null);
   const [isLoadingItinerary, setIsLoadingItinerary] = useState<boolean>(false);
   const [isWalkthroughOpen, setIsWalkthroughOpen] = useState<boolean>(false);
@@ -243,6 +353,24 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserHasJrPass,
         preferQuiet,
         setPreferQuiet,
+        foodExperience,
+        setFoodExperience,
+        foodStyles,
+        toggleFoodStyle,
+        activeTransitModalStep,
+        setActiveTransitModalStep,
+        isTransitModalOpen,
+        setIsTransitModalOpen,
+        isTripProgressActive,
+        setIsTripProgressActive,
+        completedStepIndices,
+        markStepCompleted,
+        isAdaptiveModalOpen,
+        setIsAdaptiveModalOpen,
+        adaptiveMinutesAhead,
+        applyAdaptivePlan,
+        activeWorkflowStep,
+        setActiveWorkflowStep,
         activeItinerary,
         isLoadingItinerary,
         generateTimePlan,
@@ -286,6 +414,24 @@ const defaultTripState: TripContextType = {
   setUserHasJrPass: () => {},
   preferQuiet: true,
   setPreferQuiet: () => {},
+  foodExperience: 'local',
+  setFoodExperience: () => {},
+  foodStyles: ['Hoto noodles', 'Soba'],
+  toggleFoodStyle: () => {},
+  activeTransitModalStep: null,
+  setActiveTransitModalStep: () => {},
+  isTransitModalOpen: false,
+  setIsTransitModalOpen: () => {},
+  isTripProgressActive: false,
+  setIsTripProgressActive: () => {},
+  completedStepIndices: [],
+  markStepCompleted: () => {},
+  isAdaptiveModalOpen: false,
+  setIsAdaptiveModalOpen: () => {},
+  adaptiveMinutesAhead: 40,
+  applyAdaptivePlan: () => {},
+  activeWorkflowStep: 'discovery',
+  setActiveWorkflowStep: () => {},
   activeItinerary: null,
   isLoadingItinerary: false,
   generateTimePlan: async () => null,

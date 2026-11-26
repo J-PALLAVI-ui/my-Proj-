@@ -6,6 +6,7 @@ import { PlacesGrid } from './components/PlacesGrid';
 import { DigitalTwin3D } from './components/DigitalTwin3D';
 import { LiveRegionMap } from './components/LiveRegionMap';
 import { TripProvider, useTrip } from './context/TripContext';
+import { I18nProvider } from './i18n/I18nContext';
 import { apiUrl } from './config';
 
 const MainAppContent: React.FC = () => {
@@ -185,8 +186,10 @@ const MainAppContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <TripProvider>
-      <MainAppContent />
-    </TripProvider>
+    <I18nProvider>
+      <TripProvider>
+        <MainAppContent />
+      </TripProvider>
+    </I18nProvider>
   );
 };

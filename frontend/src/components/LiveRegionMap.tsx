@@ -209,20 +209,26 @@ const REGION_LOCATIONS: MapLocation[] = [
   }
 ];
 
+// Cached markers module-level to avoid redundant fetches and map flashing
+let cachedPlacesCache: MapLocation[] | null = null;
+
 export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
   onSelectPlace,
   onAskHana,
   selectedPlaceId: _selectedPlaceId
 }) => {
   const { selectedPlaceId, setSelectedPlace, generateTimePlan, timeBudgetHours, openWalkthrough } = useTrip();
-  const [places, setPlaces] = useState<MapLocation[]>(REGION_LOCATIONS);
-  const [activeLocation, setActiveLocation] = useState<MapLocation>(REGION_LOCATIONS[0]);
+  const [places, setPlaces] = useState<MapLocation[]>(cachedPlacesCache || REGION_LOCATIONS);
+  const [activeLocation, setActiveLocation] = useState<MapLocation>(places[0] || REGION_LOCATIONS[0]);
   const [filterLake, setFilterLake] = useState<string>('all');
   const [filterDiscovery, setFilterDiscovery] = useState<'all' | 'FAMOUS' | 'HIDDEN_GEM'>('all');
 
-  // Load verified destinations dynamically from backend
+  // Load verified destinations dynamically from backend with caching
   useEffect(() => {
     let isMounted = true;
+    if (cachedPlacesCache && cachedPlacesCache.length > 30) {
+      return;
+    }
     const loadMapMarkers = async () => {
       try {
         let res = await fetch(apiUrl('/api/v1/places/markers?limit=300'));
@@ -251,8 +257,11 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
                 discovery_type: p.discovery_type || 'FAMOUS'
               };
             });
+            cachedPlacesCache = mapped;
             setPlaces(mapped);
-            if (mapped.length > 0) setActiveLocation(mapped[0]);
+            if (mapped.length > 0 && !selectedPlaceId) {
+              setActiveLocation(mapped[0]);
+            }
           }
         }
       } catch (err) {
@@ -261,7 +270,7 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
     };
     loadMapMarkers();
     return () => { isMounted = false; };
-  }, []);
+  }, [selectedPlaceId]);
 
   useEffect(() => {
     if (selectedPlaceId) {
@@ -370,6 +379,9 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
           assigned.add(other.id);
         }
       }
+
+      // Sort group deterministically by canonical place_id for rock-solid key stability
+      group.sort((a, b) => a.id.localeCompare(b.id));
 
       if (group.length === 1) {
         result.push({
@@ -686,21 +698,20 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
             {/* Clustered or Individual Destination Markers */}
             {clusters.map((item) => {
               if (item.isCluster) {
-                // Interactive Cluster Marker
+                // Interactive Cluster Marker with stable geometry
                 const isHiddenDom = item.dominantType === 'HIDDEN_GEM';
                 return (
                   <g
                     key={item.id}
                     transform={`translate(${item.x}, ${item.y})`}
                     onClick={() => handleClusterClick(item)}
-                    className="cursor-pointer transition-transform hover:scale-125"
+                    className="cursor-pointer transition-transform hover:scale-110"
                   >
                     <circle
                       r={item.count >= 10 ? "18" : "15"}
-                      fill={isHiddenDom ? 'rgba(16, 185, 129, 0.25)' : 'rgba(2, 132, 199, 0.25)'}
+                      fill={isHiddenDom ? 'rgba(16, 185, 129, 0.22)' : 'rgba(2, 132, 199, 0.22)'}
                       stroke={isHiddenDom ? '#10b981' : '#38bdf8'}
                       strokeWidth="1.5"
-                      className="animate-pulse"
                     />
                     <circle
                       r={item.count >= 10 ? "13" : "11"}
@@ -737,15 +748,16 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
                   onClick={() => handlePinClick(loc)}
                   onMouseEnter={() => setHoveredLocationId(loc.id)}
                   onMouseLeave={() => setHoveredLocationId(null)}
-                  className="cursor-pointer transition-transform hover:scale-125"
+                  className="cursor-pointer transition-transform hover:scale-110"
                 >
-                  {/* Pin shadow and ripple */}
+                  {/* Stable Selection Highlight Ring */}
                   {isSelected && (
                     <circle
                       r="20"
                       fill="#38bdf8"
-                      opacity="0.3"
-                      className="animate-ping"
+                      opacity="0.25"
+                      stroke="#38bdf8"
+                      strokeWidth="1.5"
                     />
                   )}
 
@@ -756,7 +768,6 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
                       fill={isSelected ? '#059669' : '#064e3b'}
                       stroke={isSelected ? '#ffffff' : '#10b981'}
                       strokeWidth={isSelected ? '2.5' : '1.8'}
-                      filter={isSelected ? 'url(#glow)' : undefined}
                     />
                   ) : (
                     // Circular Pin for Famous Locations
@@ -773,7 +784,6 @@ export const LiveRegionMap: React.FC<LiveRegionMapProps> = ({
                           : '#f43f5e'
                       }
                       strokeWidth={isSelected ? '2.5' : '1.8'}
-                      filter={isSelected ? 'url(#glow)' : undefined}
                     />
                   )}
 
