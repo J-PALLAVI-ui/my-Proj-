@@ -99,6 +99,67 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showStationBanner, setShowStationBanner] = useState(false);
   const [lastStationName, setLastStationName] = useState(currentLocation.name);
+  const [isRecalculatingRoutes, setIsRecalculatingRoutes] = useState(false);
+  const [recalculationStep, setRecalculationStep] = useState(1);
+  const [pendingStationName, setPendingStationName] = useState('');
+  const [showConfirmedBanner, setShowConfirmedBanner] = useState(false);
+  const [isCrowdedAlertVisible, setIsCrowdedAlertVisible] = useState(true);
+
+  const handleStationChange = (hub: typeof STANDARD_HUBS[0]) => {
+    if (hub.name === currentLocation.name) {
+      setIsStationDropdownOpen(false);
+      return;
+    }
+    setIsStationDropdownOpen(false);
+    setCurrentLocation(hub);
+    setPendingStationName(hub.name.split('(')[0].trim());
+    setIsRecalculatingRoutes(true);
+    setRecalculationStep(1);
+
+    setTimeout(() => setRecalculationStep(2), 200);
+    setTimeout(() => setRecalculationStep(3), 400);
+    setTimeout(() => setRecalculationStep(4), 600);
+    setTimeout(() => {
+      setIsRecalculatingRoutes(false);
+      setShowConfirmedBanner(true);
+    }, 800);
+  };
+
+  const handleReplaceWithYagizaki = () => {
+    setIsCrowdedAlertVisible(false);
+    setSelectedPlace('kawaguchiko_yagizaki_park', 'Yagizaki Park (八木崎公園 - Alternative)');
+    if (onAskHana) {
+      onAskHana('I selected Yagizaki Park as a quiet alternative to Oishi Park. Please adjust my route and itinerary.');
+    }
+  };
+
+  const comparisonRows = useMemo(() => {
+    const is5th = currentLocation.name.toLowerCase().includes('5th') || currentLocation.name.includes('五合目');
+    const isFujisan = currentLocation.name.toLowerCase().includes('fujisan') || currentLocation.name.includes('富士山');
+    const isHighland = currentLocation.name.toLowerCase().includes('highland') || currentLocation.name.includes('ハイランド');
+    const isShimoyoshida = currentLocation.name.toLowerCase().includes('shimoyoshida') || currentLocation.name.includes('下吉田');
+
+    return [
+      {
+        id: 'oishi_park',
+        name: 'Oishi Park (大石公園)',
+        fromKawaguchiko: '4.2 km | 12 min',
+        fromCurrent: is5th ? '28.7 km | 58 min' : isFujisan ? '8.4 km | 24 min' : isHighland ? '6.8 km | 18 min' : isShimoyoshida ? '9.6 km | 28 min' : '4.2 km | 12 min',
+      },
+      {
+        id: 'saiko_iyashi',
+        name: 'Saiko Iyashi-no-Sato (西湖いやしの里根場)',
+        fromKawaguchiko: '12.4 km | 25 min',
+        fromCurrent: is5th ? '31.2 km | 1 h 05 min' : isFujisan ? '16.8 km | 35 min' : isHighland ? '14.2 km | 29 min' : isShimoyoshida ? '18.1 km | 38 min' : '12.4 km | 25 min',
+      },
+      {
+        id: 'shiraito_falls',
+        name: 'Shiraito Falls (白糸の滝)',
+        fromKawaguchiko: '25.6 km | 48 min',
+        fromCurrent: is5th ? '44.8 km | 1 h 28 min' : isFujisan ? '29.2 km | 55 min' : isHighland ? '27.4 km | 50 min' : isShimoyoshida ? '31.5 km | 58 min' : '25.6 km | 48 min',
+      },
+    ];
+  }, [currentLocation.name]);
 
   // Pagination state (Screen A)
   const [currentPage, setCurrentPage] = useState(1);
@@ -824,10 +885,7 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                     <button
                       key={hub.name}
                       type="button"
-                      onClick={() => {
-                        setCurrentLocation(hub);
-                        setIsStationDropdownOpen(false);
-                      }}
+                      onClick={() => handleStationChange(hub)}
                       className={`w-full text-left px-3.5 py-2.5 text-xs flex items-center justify-between hover:bg-sky-50 transition-colors ${
                         currentLocation.name === hub.name
                           ? 'bg-sky-50/80 font-bold text-[#078ACB]'
@@ -891,6 +949,76 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               <span>{t('discovery.allPlaces', 'All Places')} ({totalCount})</span>
             </button>
           </div>
+
+          {/* Confirmed Origin Changed Banner (Workflow A) */}
+          {showConfirmedBanner && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-2xs animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0">✓</span>
+                <span>
+                  <strong>Origin changed — routes recalculated:</strong> Now showing routes from <span className="underline font-bold">{currentLocation.name.split('(')[0].trim()}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setShowConfirmedBanner(false)}
+                className="text-emerald-500 hover:text-emerald-800 px-1.5 py-0.5 rounded text-sm font-bold"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Crowd Alert & Alternative Suggestion Card (Workflow B) */}
+          {isCrowdedAlertVisible && (
+            <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-3.5 shadow-2xs space-y-2.5 animate-in fade-in">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-600 text-sm">⚠️</span>
+                  <div>
+                    <h5 className="text-xs font-bold text-amber-950">
+                      Oishi Park is crowded (85%)
+                    </h5>
+                    <p className="text-[11px] text-amber-800 mt-0.5">
+                      Very crowded today (weekend/peak season). Hana recommends nearby peaceful alternatives:
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsCrowdedAlertVisible(false)}
+                  className="text-amber-500 hover:text-amber-800 text-xs font-bold px-1"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="bg-white rounded-xl border border-amber-200/80 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=300&q=80"
+                    alt="Yagizaki Park"
+                    className="w-12 h-12 rounded-lg object-cover shrink-0"
+                  />
+                  <div>
+                    <div className="text-xs font-bold text-[#14283F]">Yagizaki Park (Alternative)</div>
+                    <div className="text-[11px] text-slate-500">15 min from here • Crowd 24% (Low) • Great Fuji view</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleReplaceWithYagizaki}
+                    className="px-3 py-1.5 bg-[#078ACB] text-white rounded-lg text-xs font-bold hover:bg-[#0677af] transition-colors shadow-2xs"
+                  >
+                    Replace in itinerary
+                  </button>
+                  <button
+                    onClick={() => setIsCrowdedAlertVisible(false)}
+                    className="px-2.5 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    Keep original
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Blue Station Change Alert Banner (Panel B) */}
           {showStationBanner && (
@@ -1000,6 +1128,42 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
               />
               <span>{t('discovery.openNow', 'Open Now')}</span>
             </label>
+          </div>
+
+          {/* Result Comparison Table (Workflow A) */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">📊</span>
+                <h4 className="text-xs font-bold text-[#14283F]">Result Comparison (Illustrative / Real Values)</h4>
+              </div>
+              <span className="text-[10px] bg-sky-50 text-[#078ACB] border border-sky-200 px-2 py-0.5 rounded-full font-bold">
+                FujiNova Distance Matrix
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] text-slate-500">
+                    <th className="py-1.5 pr-3 font-semibold">Attraction</th>
+                    <th className="py-1.5 px-3 font-semibold text-slate-600">From Kawaguchiko (Distance | Time)</th>
+                    <th className="py-1.5 pl-3 font-semibold text-[#078ACB]">From {currentLocation.name.split('(')[0].trim()} (Distance | Time)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {comparisonRows.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-2 pr-3 font-bold text-[#14283F]">{r.name}</td>
+                      <td className="py-2 px-3 text-slate-600">{r.fromKawaguchiko}</td>
+                      <td className="py-2 pl-3 font-bold text-[#078ACB]">{r.fromCurrent}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[10px] text-slate-400 italic">
+              Note: Distances and travel times change dynamically with the selected starting origin using the FujiNova Station Distance Matrix.
+            </p>
           </div>
 
           {/* Main Grid: Left 3 Cards + Right Interactive Mini Map */}
@@ -2245,6 +2409,60 @@ export const StationDiscoveryWorkflow: React.FC<StationDiscoveryWorkflowProps> =
                 <Check className="w-4 h-4" />
                 <span>Apply updated plan</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          RECALCULATING ROUTES MODAL (WORKFLOW A - PANEL 3)
+         ========================================================================= */}
+      {isRecalculatingRoutes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-sky-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+            <div className="relative w-16 h-16 flex items-center justify-center mb-2">
+              <svg className="w-14 h-14 text-[#078ACB] animate-spin" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" strokeDasharray="50 150" strokeLinecap="round" />
+              </svg>
+              <span className="absolute text-xl">🗻</span>
+            </div>
+            <h3 className="text-base font-bold text-[#14283F]">Recalculating Routes...</h3>
+            <p className="text-xs text-[#718198] mt-1">
+              Updating distances, travel times, and itinerary from the new origin.
+            </p>
+            <div className="w-full mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-left space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className={recalculationStep >= 1 ? "text-emerald-500 font-bold" : "text-slate-400"}>
+                  {recalculationStep > 1 ? "✓" : "⟳"}
+                </span>
+                <span className={recalculationStep >= 1 ? "text-slate-800 font-medium" : "text-slate-400"}>
+                  Fetching route from {pendingStationName || 'Station'}...
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={recalculationStep >= 2 ? "text-emerald-500 font-bold" : "text-slate-400"}>
+                  {recalculationStep > 2 ? "✓" : recalculationStep === 2 ? "⟳" : "○"}
+                </span>
+                <span className={recalculationStep >= 2 ? "text-slate-800 font-medium" : "text-slate-400"}>
+                  Calculating travel time (Oishi Park)...
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={recalculationStep >= 3 ? "text-emerald-500 font-bold" : "text-slate-400"}>
+                  {recalculationStep > 3 ? "✓" : recalculationStep === 3 ? "⟳" : "○"}
+                </span>
+                <span className={recalculationStep >= 3 ? "text-slate-800 font-medium" : "text-slate-400"}>
+                  Calculating travel time (Saiko Iyashi-no-Sato)...
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={recalculationStep >= 4 ? "text-emerald-500 font-bold" : "text-slate-400"}>
+                  {recalculationStep >= 4 ? "✓" : "○"}
+                </span>
+                <span className={recalculationStep >= 4 ? "text-slate-800 font-medium" : "text-slate-400"}>
+                  Calculating travel time (Shiraito Falls)...
+                </span>
+              </div>
             </div>
           </div>
         </div>

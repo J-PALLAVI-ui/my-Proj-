@@ -18,6 +18,10 @@ HUB_COORDS: Dict[str, tuple] = {
     "富士山駅": (35.4839, 138.7958),
     "Mt. Fuji 5th Station": (35.3908, 138.7323),
     "富士山五合目": (35.3908, 138.7323),
+    "Shimoyoshida Station": (35.4925, 138.8042),
+    "下吉田駅": (35.4925, 138.8042),
+    "Fujikyu-Highland Station": (35.4883, 138.7803),
+    "富士急ハイランド駅": (35.4883, 138.7803),
     "Shin-Fuji Station": (35.1425, 138.6631),
     "新富士駅": (35.1425, 138.6631),
     "Mishima Station": (35.1271, 138.9108),
@@ -258,3 +262,30 @@ def crowd_timing(
                                ds.hhmm_to_min(preferred_time), scenario)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/discovery/compare")
+def compare_station_routes(
+    origin_a: str = Query("Kawaguchiko Station", description="First origin station"),
+    origin_b: str = Query("Mt. Fuji 5th Station", description="Second origin station for what-if comparison"),
+    place_ids: Optional[str] = Query(None, description="Comma-separated place IDs to compare")
+):
+    """Compares route distance and travel time from two distinct starting stations."""
+    from backend.app.services.discovery.station_matrix_service import get_origin_comparison
+    default_pids = [
+        "kawaguchiko_oishi_park",
+        "saiko_iyashi_nenba",
+        "shiraito_falls"
+    ]
+    if isinstance(place_ids, str) and place_ids.strip():
+        pids = [p.strip() for p in place_ids.split(",") if p.strip()]
+    else:
+        pids = default_pids
+    comparisons = get_origin_comparison(pids, origin_a, origin_b)
+    return {
+        "origin_a": origin_a,
+        "origin_b": origin_b,
+        "comparisons": comparisons,
+        "note": "Actual values calculated using FujiNova Station Distance Matrix."
+    }
+

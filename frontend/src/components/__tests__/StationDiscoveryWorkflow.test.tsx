@@ -17,7 +17,7 @@ describe('StationDiscoveryWorkflow Component (4-Panel Architecture)', () => {
 
     // Screen A title & location
     expect(screen.getByText('Where are you starting?')).toBeDefined();
-    expect(screen.getByText(/Kawaguchiko Station/)).toBeDefined();
+    expect(screen.getAllByText(/Kawaguchiko Station/)[0]).toBeDefined();
     expect(screen.getByText('Use GPS')).toBeDefined();
 
     // Tabs

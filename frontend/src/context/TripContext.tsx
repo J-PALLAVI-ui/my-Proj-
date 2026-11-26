@@ -36,6 +36,13 @@ export const STANDARD_HUBS: LocationInfo[] = [
     isOutsideRegion: false,
   },
   {
+    name: 'Mt. Fuji 5th Station (Subaru Line 2,305m)',
+    lat: 35.3941,
+    lon: 138.7328,
+    isGps: false,
+    isOutsideRegion: false,
+  },
+  {
     name: 'Shimoyoshida Station (Chureito Pagoda)',
     lat: 35.4983,
     lon: 138.8078,
@@ -43,9 +50,9 @@ export const STANDARD_HUBS: LocationInfo[] = [
     isOutsideRegion: false,
   },
   {
-    name: 'Mt. Fuji 5th Station (Subaru Line 2,305m)',
-    lat: 35.3941,
-    lon: 138.7328,
+    name: 'Fujikyu-Highland Station',
+    lat: 35.4883,
+    lon: 138.7803,
     isGps: false,
     isOutsideRegion: false,
   },
